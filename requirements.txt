@@ -1,2 +1,0 @@
-# duckpond has no Python dependencies: it runs on the standard library.
-# Runtime needs Python 3.9+ and the fzf binary (0.44+) on PATH, see README "Requirements".
