@@ -22,7 +22,7 @@ def header(rows):
         status = f'{len(real)} session{"s" if len(real) != 1 else ""} from {", ".join(agents)}'
     else:
         status = 'no sessions yet. run claude, codex or hermes once and it will show up here'
-    return mini([f'{BOLD}duckpond{RESET}  {TAGLINE}', status, '', f'Have a question? Hit {BOLD}?{RESET} for the help menu.'])
+    return mini([f'{BOLD}duckpond{RESET}  {TAGLINE}', status, '', f'Hit {BOLD}?{RESET} for a help menu or {BOLD}Esc{RESET} to exit.'])
 
 
 # fzf colours: the terminal's own colours, with pond green for the accents.

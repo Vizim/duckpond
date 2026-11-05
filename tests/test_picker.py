@@ -87,7 +87,7 @@ def test_header_and_mini_duck():
     rows = ['claude\t__NEW__\t/h\t+ new claude session', 'claude\tabc\t/h\tx', 'codex\tdef\t/h\ty']
     text = re.sub(r'\x1b\[[0-9;]*m', '', picker.header(rows))
     assert 'duckpond' in text and 'all your AI sessions, one pond' in text
-    assert '2 sessions from claude, codex' in text and 'Hit ?' in text
+    assert '2 sessions from claude, codex' in text and 'Hit ?' in text and 'Esc to exit' in text
     assert 'no sessions yet' in picker.header(rows[:1])
 
 

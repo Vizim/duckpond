@@ -37,9 +37,7 @@
 <circle cx="99.9" cy="79.5" r="1.6" fill="#22c55e"/>
 <text x="102.0" y="78" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="118.8" y="78" textLength="67.2" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;font-weight:600;">duckpond</text>
-<text x="186.0" y="78" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
-<text x="202.8" y="78" textLength="252.0" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">all your AI sessions, one pond</text>
-<text x="454.8" y="78" textLength="201.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">                        </text>
+<text x="186.0" y="78" textLength="470.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  all your AI sessions, one pond                        </text>
 <text x="656.4" y="78" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
 <text x="664.8" y="78" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> </text>
 <text x="18.0" y="98" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
@@ -73,9 +71,7 @@
 <circle cx="95.7" cy="89.5" r="1.6" fill="#22c55e"/>
 <circle cx="99.9" cy="84.5" r="1.6" fill="#22c55e"/>
 <circle cx="99.9" cy="89.5" r="1.6" fill="#22c55e"/>
-<text x="102.0" y="98" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
-<text x="118.8" y="98" textLength="243.6" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">3 sessions from claude, codex</text>
-<text x="362.4" y="98" textLength="294.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">                                   </text>
+<text x="102.0" y="98" textLength="554.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  3 sessions from claude, codex                                   </text>
 <text x="656.4" y="98" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
 <text x="664.8" y="98" textLength="369.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> - title: Rate limiter returns 429 too early</text>
 <text x="18.0" y="118" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
@@ -119,22 +115,24 @@
 <circle cx="87.3" cy="124.5" r="1.6" fill="#22c55e"/>
 <circle cx="87.3" cy="129.5" r="1.6" fill="#22c55e"/>
 <circle cx="91.5" cy="124.5" r="1.6" fill="#22c55e"/>
-<text x="102.0" y="138" textLength="193.2" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  Have a question? Hit </text>
-<text x="295.2" y="138" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;font-weight:600;">F1</text>
-<text x="312.0" y="138" textLength="344.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> for the help menu.                      </text>
+<text x="102.0" y="138" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  Hit </text>
+<text x="152.4" y="138" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;font-weight:600;">?</text>
+<text x="160.8" y="138" textLength="168.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> for a help menu or </text>
+<text x="328.8" y="138" textLength="25.2" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;font-weight:600;">Esc</text>
+<text x="354.0" y="138" textLength="302.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> to exit.                           </text>
 <text x="656.4" y="138" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
 <text x="664.8" y="138" textLength="126.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> - branch: main</text>
 <text x="18.0" y="158" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
 <text x="26.4" y="158" textLength="630.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">                                                                           </text>
 <text x="656.4" y="158" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
-<text x="664.8" y="158" textLength="428.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> - session id: de78cef7-0f01-49be-a4a1-5d4bd87887cc</text>
+<text x="664.8" y="158" textLength="428.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> - session id: 656e69b9-e336-4da9-8859-71ab0c8cc08d</text>
 <text x="18.0" y="178" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
 <text x="26.4" y="178" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> </text>
 <text x="34.8" y="178" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#4ade80;">▶</text>
 <text x="43.2" y="178" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> </text>
 <text x="51.6" y="178" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#4ade80;">●</text>
 <text x="60.0" y="178" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> </text>
-<text x="68.4" y="178" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 15:18</text>
+<text x="68.4" y="178" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 15:34</text>
 <text x="160.8" y="178" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="177.6" y="178" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#fb923c;">claude</text>
 <text x="228.0" y="178" textLength="420.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  rocket-api          Rate limiter returns 429 to…</text>
@@ -143,7 +141,7 @@
 <text x="664.8" y="178" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> </text>
 <text x="18.0" y="198" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
 <text x="26.4" y="198" textLength="42.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">     </text>
-<text x="68.4" y="198" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 13:53</text>
+<text x="68.4" y="198" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 14:09</text>
 <text x="160.8" y="198" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="177.6" y="198" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#22d3ee;">codex </text>
 <text x="228.0" y="198" textLength="420.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  rocket-api          add a redis cache in front …</text>
@@ -152,7 +150,7 @@
 <text x="664.8" y="198" textLength="134.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> ## Conversation</text>
 <text x="18.0" y="218" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">│</text>
 <text x="26.4" y="218" textLength="42.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">     </text>
-<text x="68.4" y="218" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-03 14:23</text>
+<text x="68.4" y="218" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-03 14:39</text>
 <text x="160.8" y="218" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="177.6" y="218" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#fb923c;">claude</text>
 <text x="228.0" y="218" textLength="420.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  rocket-api          Postgres connection pool ex…</text>
