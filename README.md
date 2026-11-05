@@ -88,6 +88,6 @@ python -m agent_picker.picker
 
 Point the `*_HOME` variables above at a directory of sample stores to try it without your real sessions.
 
-## License
+## License and trademarks
 
-MIT
+MIT. This is an independent project. Claude Code is a product of Anthropic, Codex of OpenAI and Hermes of Nous Research. Their names are used only to say which tools this picker works with. None of them built, endorse or are affiliated with it, and it ships none of their software: each agent is installed and signed into through its own official flow, and the picker only launches it.
