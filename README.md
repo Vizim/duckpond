@@ -1,4 +1,4 @@
-# agent-picker
+# ai-session-picker
 
 One picker for every coding-agent session on your machine: [Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex) and [Hermes](https://github.com/NousResearch/hermes-agent), across all projects, in fzf.
 
@@ -37,7 +37,7 @@ Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 Linux, macOS and Windows. Requires Python 3.8 or newer and [fzf](https://github.com/junegunn/fzf#installation) 0.44 or newer on your PATH, plus whichever agents you use.
 
 ```sh
-pipx install git+https://github.com/Vizim/claude-code-session-picker
+pipx install git+https://github.com/Vizim/ai-session-picker
 ```
 
 or, from a clone, `pip install .` or `pipx install .`. Then:
@@ -81,8 +81,8 @@ Everything stays on your machine.
 ## Development
 
 ```sh
-git clone https://github.com/Vizim/claude-code-session-picker
-cd claude-code-session-picker
+git clone https://github.com/Vizim/ai-session-picker
+cd ai-session-picker
 python -m agent_picker.picker
 ```
 
