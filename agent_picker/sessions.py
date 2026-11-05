@@ -598,6 +598,8 @@ def show_preview(agent, sid, full):
 
 def doctor():
     import platform
+    from .duck import DUCK
+    print(DUCK)
     print(f"aisp on {platform.system()} {platform.release()}, python {platform.python_version()}")
     fzf = shutil.which('fzf')
     if fzf:
@@ -606,6 +608,8 @@ def doctor():
     else:
         print('fzf        MISSING, install it from https://github.com/junegunn/fzf#installation')
     print(f'cache      {CACHE}')
+    from . import config
+    print(f"terminal   {config.get('terminal') or 'auto'}    (aisp config terminal \"...\" to change)")
     stores = [('claude', CLAUDE_HOME, os.path.join(CLAUDE_HOME, 'projects', '*', '*.jsonl')),
               ('codex', CODEX_HOME, os.path.join(CODEX_HOME, 'sessions', '*', '*', '*', '*.jsonl')),
               ('hermes', HERMES_HOME, os.path.join(HERMES_HOME, 'state.db'))]
@@ -625,7 +629,9 @@ USAGE = """aisp                       pick a session and resume it
 aisp --window              same, in a new terminal window
 aisp list [--json] [words]  print the session list (words filter it)
 aisp doctor                check agents, stores, fzf and the cache
+aisp config [KEY [VALUE]]  show or change settings, e.g. aisp config terminal "alacritty -e"
 aisp install-launcher      add an "AI Sessions" app with an icon to this desktop
+aisp uninstall-launcher    remove it again
 aisp preview [--full] AGENT ID
 aisp export AGENT ID FILE   write a session as markdown
 aisp hide AGENT ID | aisp unhide-all | aisp copy TEXT"""

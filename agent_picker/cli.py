@@ -1,7 +1,8 @@
 """The aisp command: the picker by default, otherwise an indexer subcommand."""
 import sys
 
-from . import launcher, picker, sessions
+from . import config, launcher, picker, sessions
+from .duck import DUCK
 
 USAGE = sessions.USAGE
 
@@ -21,6 +22,7 @@ def main():
     if args == ['--window']:
         return picker.open_window()
     if args[0] in ('-h', '--help', 'help'):
+        print(DUCK)
         print(USAGE)
         return
     if args[0] in ('-V', '--version'):
@@ -28,6 +30,18 @@ def main():
         return
     if args == ['install-launcher']:
         print(launcher.install())
+        return
+    if args == ['uninstall-launcher']:
+        print(launcher.uninstall())
+        return
+    if args[0] == 'config':
+        if len(args) == 1:
+            print(config.show())
+        elif len(args) in (2, 3):
+            config.set_value(args[1], args[2] if len(args) == 3 else '')
+            print(config.show())
+        else:
+            sys.exit('usage: aisp config [KEY [VALUE]]')
         return
     return sessions.main(args)
 

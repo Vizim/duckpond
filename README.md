@@ -1,12 +1,23 @@
 # ai-session-picker
 
+```
+      __
+    <(o )___      aisp
+     ( ._> /      get back to the duck you were talking to
+      `---'
+```
+
 One picker for every coding-agent session on your machine: [Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex) and [Hermes](https://github.com/NousResearch/hermes-agent), across all projects, in fzf.
 
-Each agent's own resume command only shows the sessions for the folder you launched it from, and each has its own list. This picker reads all of them, gives every session a title and a preview of what you asked and what the agent last said, and resumes the one you pick in the right directory with the right agent. It can also hand a conversation from one agent to another.
+You rubber-duck with these agents all day. Each one keeps its own history, and each one only shows you the sessions for the folder you launched it from. `aisp` reads all of them, gives every session a title and a preview of what you asked and what the duck said back, and resumes the one you pick in the right directory with the right agent. It can also hand a conversation from one duck to another.
 
 ![aisp showing Claude, Codex and Hermes sessions with a preview pane](docs/picker.svg)
 
-*Screenshot rendered from generated sample data.*
+Type to search, press Ctrl-P for the whole transcript:
+
+![searching for rocket with the full transcript in the preview](docs/search.svg)
+
+*Screenshots are rendered from generated sample data, not real sessions.*
 
 ## Features
 
@@ -35,13 +46,21 @@ Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 
 ## Install
 
-Linux, macOS and Windows. Requires Python 3.9 or newer and [fzf](https://github.com/junegunn/fzf#installation) 0.44 or newer on your PATH, plus whichever agents you use.
+One line. It creates a private virtualenv, fetches fzf if you do not have it, registers an "AI Sessions" app with an icon, and runs a health check.
+
+Linux and macOS:
 
 ```sh
-pipx install git+https://github.com/Vizim/ai-session-picker
+curl -fsSL https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.sh | sh
 ```
 
-or, from a clone, `pip install .` or `pipx install .`. Then:
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.ps1 | iex
+```
+
+Needs Python 3.9 or newer. Everything else is handled. Then:
 
 ```sh
 aisp            # in the current terminal
@@ -49,31 +68,49 @@ aisp --window   # in a new terminal window
 aisp doctor     # check agents, stores, fzf and the cache
 ```
 
+![aisp doctor output](docs/doctor.svg)
+
+Remove it just as easily. This takes the virtualenv, the command, the launcher and, if you say yes, the cache with it:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.sh | sh -s -- --uninstall
+```
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.ps1))) -Uninstall
+```
+
+Prefer your own tooling? `pipx install git+https://github.com/Vizim/ai-session-picker` works too, as does `pip install .` from a clone; install [fzf](https://github.com/junegunn/fzf#installation) 0.44 or newer yourself in that case.
+
 `--window` uses the first terminal it finds on Linux (kitty, alacritty, foot, wezterm, gnome-terminal, konsole, xfce4-terminal, xterm), Terminal.app on macOS and Windows Terminal or cmd on Windows.
 
 ### App icon and launcher
 
 <img src="agent_picker/assets/aisp.svg" width="64" align="right" alt="aisp icon">
 
-```sh
-aisp install-launcher
-```
-
-puts an "AI Sessions" app with the icon where your desktop looks for apps, so you can pin it to a dock, panel or taskbar:
+The installer runs `aisp install-launcher`, which puts an "AI Sessions" app with the icon where your desktop looks for apps, so you can pin it to a dock, panel or taskbar:
 
 - Linux: a desktop entry in `~/.local/share/applications` plus hicolor icons
 - macOS: `~/Applications/AI Sessions.app`, a tiny bundle that runs `aisp --window`
 - Windows: a Start Menu shortcut with the `.ico`, pin it to the taskbar from there
 
-The icon ships in the package as SVG, PNG, ICO and ICNS under `agent_picker/assets` if you want to use it elsewhere, for example in a status bar widget.
-
-Without installing, run it from a clone with `python -m agent_picker.cli`.
+`aisp uninstall-launcher` removes it. The icon ships in the package as SVG, PNG, ICO and ICNS under `agent_picker/assets` if you want to use it elsewhere, for example in a status bar widget.
 
 ## Configuration
 
+Settings live in `~/.config/aisp/config.ini` (`%APPDATA%\aisp\config.ini` on Windows) and are changed with `aisp config`:
+
+```sh
+aisp config                          # show settings and where the file is
+aisp config terminal "alacritty -e"  # use alacritty for --window and the app launcher
+aisp config terminal ""              # back to auto-detect
+```
+
+Environment variables override the file for one run:
+
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `AGENT_PICKER_TERMINAL` | per OS | Command that runs a program in a new window, e.g. `kitty -e` or `alacritty -e` |
+| `AISP_TERMINAL` | per OS | Command that opens a terminal window running the program after it, e.g. `alacritty -e` or `gnome-terminal -- {cmd}` |
 | `AGENT_PICKER_CACHE` | `~/.cache/agent-picker` | Index, previews, handoff files and the hidden list |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Where Claude Code keeps its transcripts |
 | `CODEX_HOME` | `~/.codex` | Where Codex keeps its rollouts |

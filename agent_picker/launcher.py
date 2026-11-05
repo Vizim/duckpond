@@ -82,3 +82,24 @@ def install():
     if sys.platform == 'win32':
         return windows()
     return linux()
+
+
+def remove(path):
+    if os.path.isdir(path) and not os.path.islink(path):
+        shutil.rmtree(path, ignore_errors=True)
+    elif os.path.lexists(path):
+        os.remove(path)
+    else:
+        return False
+    return True
+
+
+def uninstall():
+    share = os.environ.get('XDG_DATA_HOME') or os.path.join(HOME, '.local', 'share')
+    paths = [os.path.join(HOME, 'Applications', f'{NAME}.app'),
+             os.path.join(os.environ.get('APPDATA', HOME), 'Microsoft', 'Windows', 'Start Menu', 'Programs', f'{NAME}.lnk'),
+             os.path.join(share, 'applications', 'aisp.desktop'),
+             os.path.join(share, 'icons', 'hicolor', 'scalable', 'apps', 'aisp.svg')]
+    paths += [os.path.join(share, 'icons', 'hicolor', f'{s}x{s}', 'apps', 'aisp.png') for s in (16, 32, 48, 64, 128, 256, 512)]
+    gone = [p for p in paths if remove(p)]
+    return 'removed:\n  ' + '\n  '.join(gone) if gone else 'no launcher was installed'

@@ -1,0 +1,94 @@
+#!/bin/sh
+# aisp installer for Linux and macOS.
+#
+#   curl -fsSL https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.sh | sh
+#   sh install.sh --uninstall
+#
+# Installs into a private virtualenv under $AISP_HOME (default ~/.local/share/aisp), links aisp into
+# $AISP_BIN (default ~/.local/bin), fetches fzf there if missing, and registers the app launcher.
+set -eu
+
+REPO="https://github.com/Vizim/ai-session-picker"
+AISP_HOME="${AISP_HOME:-$HOME/.local/share/aisp}"
+AISP_BIN="${AISP_BIN:-$HOME/.local/bin}"
+VENV="$AISP_HOME/venv"
+
+say() { printf '%s\n' "$*"; }
+die() { printf 'aisp install: %s\n' "$*" >&2; exit 1; }
+ask() {  # ask "question" -> 0 for yes; defaults to no when there is no terminal
+  reply=""
+  if [ -t 0 ]; then
+    printf '%s [y/N] ' "$1"; read -r reply || reply=""
+  elif { exec 3</dev/tty; } 2>/dev/null; then
+    printf '%s [y/N] ' "$1"; read -r reply <&3 || reply=""; exec 3<&-
+  fi
+  case "$reply" in y|Y|yes) return 0 ;; *) return 1 ;; esac
+}
+
+uninstall() {
+  [ -x "$VENV/bin/aisp" ] && "$VENV/bin/aisp" uninstall-launcher || true
+  rm -rf "$AISP_HOME"
+  [ -L "$AISP_BIN/aisp" ] && rm -f "$AISP_BIN/aisp"
+  [ -f "$AISP_BIN/.aisp-installed-fzf" ] && rm -f "$AISP_BIN/fzf" "$AISP_BIN/.aisp-installed-fzf"
+  cache="${AGENT_PICKER_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/agent-picker}"
+  if [ -d "$cache" ] && ask "also remove the cache with session previews at $cache?"; then rm -rf "$cache"; fi
+  say "aisp removed"
+}
+
+find_python() {
+  for py in python3 python3.13 python3.12 python3.11 python3.10 python3.9 python; do
+    if command -v "$py" >/dev/null 2>&1 && "$py" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' 2>/dev/null; then
+      command -v "$py"; return 0
+    fi
+  done
+  return 1
+}
+
+install_fzf() {
+  command -v fzf >/dev/null 2>&1 && return 0
+  if [ "$(uname -s)" = Darwin ] && command -v brew >/dev/null 2>&1; then
+    say "installing fzf with Homebrew"; brew install -q fzf && return 0
+  fi
+  os=$(uname -s | tr '[:upper:]' '[:lower:]'); arch=$(uname -m)
+  case "$arch" in x86_64|amd64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; armv7l) arch=armv7 ;; *) die "no fzf build for $arch, install fzf yourself: https://github.com/junegunn/fzf#installation" ;; esac
+  ver=$(fetch https://api.github.com/repos/junegunn/fzf/releases/latest | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n1)
+  [ -n "$ver" ] || die "could not look up the latest fzf release"
+  say "installing fzf $ver into $AISP_BIN"
+  tmp=$(mktemp -d); fetch "https://github.com/junegunn/fzf/releases/download/v$ver/fzf-$ver-${os}_$arch.tar.gz" >"$tmp/fzf.tgz"
+  tar -xzf "$tmp/fzf.tgz" -C "$tmp" && install -m 755 "$tmp/fzf" "$AISP_BIN/fzf" && touch "$AISP_BIN/.aisp-installed-fzf"
+  rm -rf "$tmp"
+}
+
+fetch() {
+  if command -v curl >/dev/null 2>&1; then curl -fsSL "$1"
+  elif command -v wget >/dev/null 2>&1; then wget -qO- "$1"
+  else die "need curl or wget"; fi
+}
+
+install() {
+  py=$(find_python) || die "python 3.9 or newer is required (https://www.python.org/downloads/)"
+  mkdir -p "$AISP_HOME" "$AISP_BIN"
+  say "creating virtualenv in $VENV"
+  "$py" -m venv "$VENV" 2>/dev/null || die "could not create a virtualenv; on Debian or Ubuntu run: sudo apt install python3-venv"
+  src="git+$REPO"
+  here=$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)
+  [ -n "$here" ] && [ -f "$here/pyproject.toml" ] && src="$here"
+  say "installing aisp from $src"
+  "$VENV/bin/python" -m pip install -q --upgrade pip
+  "$VENV/bin/python" -m pip install -q --upgrade "$src"
+  ln -sf "$VENV/bin/aisp" "$AISP_BIN/aisp"
+  install_fzf
+  case ":$PATH:" in *":$AISP_BIN:"*) ;; *) say ""; say "add this to your shell profile so the aisp command is found:"; say "  export PATH=\"$AISP_BIN:\$PATH\""; say "" ;; esac
+  export PATH="$AISP_BIN:$PATH"
+  "$VENV/bin/aisp" install-launcher || say "launcher not registered, run 'aisp install-launcher' later"
+  say ""
+  "$VENV/bin/aisp" doctor || true
+  say ""
+  say "done. run: aisp"
+}
+
+case "${1:-}" in
+  --uninstall|uninstall) uninstall ;;
+  "") install ;;
+  *) die "usage: install.sh [--uninstall]" ;;
+esac

@@ -19,47 +19,47 @@
 <text x="22.4" y="154" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> </text>
 <text x="30.8" y="154" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#4ade80;">●</text>
 <text x="39.2" y="154" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> </text>
-<text x="47.6" y="154" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 13:20</text>
+<text x="47.6" y="154" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 13:38</text>
 <text x="140.0" y="154" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="154" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#fb923c;">claude</text>
 <text x="207.2" y="154" textLength="470.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  rocket-api          Rate limiter returns 429 too early</text>
 <text x="14.0" y="174" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    </text>
-<text x="47.6" y="174" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 11:55</text>
+<text x="47.6" y="174" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 12:13</text>
 <text x="140.0" y="174" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="174" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#22d3ee;">codex </text>
 <text x="207.2" y="174" textLength="588.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  rocket-api          add a redis cache in front of the pricing lookup</text>
 <text x="14.0" y="194" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    </text>
-<text x="47.6" y="194" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 09:25</text>
+<text x="47.6" y="194" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 09:43</text>
 <text x="140.0" y="194" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="194" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#fb923c;">claude</text>
 <text x="207.2" y="194" textLength="462.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  bakery-site         Astro build fails on image import</text>
 <text x="14.0" y="214" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    </text>
-<text x="47.6" y="214" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 04:40</text>
+<text x="47.6" y="214" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-05 04:58</text>
 <text x="140.0" y="214" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="214" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#e879f9;">hermes</text>
 <text x="207.2" y="214" textLength="420.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  ledger              Reconcile October statements</text>
 <text x="14.0" y="234" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    </text>
-<text x="47.6" y="234" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-04 12:25</text>
+<text x="47.6" y="234" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-04 12:43</text>
 <text x="140.0" y="234" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="234" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#fb923c;">claude</text>
 <text x="207.2" y="234" textLength="470.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  dotfiles            Fish prompt shows wrong git branch</text>
 <text x="14.0" y="254" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    </text>
-<text x="47.6" y="254" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-04 07:55</text>
+<text x="47.6" y="254" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-04 08:13</text>
 <text x="140.0" y="254" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="254" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#22d3ee;">codex </text>
 <text x="207.2" y="254" textLength="537.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  bakery-site         migrate the contact form to server actions</text>
 <text x="14.0" y="274" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    </text>
-<text x="47.6" y="274" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-03 12:25</text>
+<text x="47.6" y="274" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-03 12:43</text>
 <text x="140.0" y="274" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="274" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#fb923c;">claude</text>
 <text x="207.2" y="274" textLength="478.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  rocket-api          Postgres connection pool exhaustion</text>
 <text x="14.0" y="294" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    </text>
-<text x="47.6" y="294" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-03 01:40</text>
+<text x="47.6" y="294" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-03 01:58</text>
 <text x="140.0" y="294" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="294" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#e879f9;">hermes</text>
 <text x="207.2" y="294" textLength="361.2" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  notes               Weekly planning notes</text>
 <text x="14.0" y="314" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    </text>
-<text x="47.6" y="314" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-02 06:25</text>
+<text x="47.6" y="314" textLength="92.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">11-02 06:43</text>
 <text x="140.0" y="314" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="156.8" y="314" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#fb923c;">claude</text>
 <text x="207.2" y="314" textLength="420.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  ledger              CSV export misaligns columns</text>
@@ -75,13 +75,13 @@
 <text x="901.6" y="134" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">branch</text>
 <text x="952.0" y="134" textLength="75.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">     main</text>
 <text x="901.6" y="154" textLength="50.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">active</text>
-<text x="952.0" y="154" textLength="260.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">     Nov 05 to Thu Nov 05 13:20</text>
+<text x="952.0" y="154" textLength="260.4" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">     Nov 05 to Thu Nov 05 13:38</text>
 <text x="901.6" y="174" textLength="58.8" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">prompts</text>
 <text x="960.4" y="174" textLength="75.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">    3    </text>
 <text x="1036.0" y="174" textLength="33.6" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">cost</text>
 <text x="1069.6" y="174" textLength="84.0" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> $1.84    </text>
 <text x="1153.6" y="174" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">id</text>
-<text x="1170.4" y="174" textLength="226.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> 8e226748-1fb1-433a-ba24-55</text>
+<text x="1170.4" y="174" textLength="226.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;"> b2a8e20d-16c5-43b1-8123-db</text>
 <text x="901.6" y="214" textLength="117.6" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;font-weight:600;">WHAT YOU ASKED</text>
 <text x="901.6" y="234" textLength="16.8" lengthAdjust="spacingAndGlyphs" style="fill:#d4d4d8;">  </text>
 <text x="918.4" y="234" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="fill:#71717a;">·</text>

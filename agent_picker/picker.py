@@ -11,7 +11,7 @@ import threading
 import time
 import urllib.request
 
-from . import sessions
+from . import config, sessions
 
 HEADER = ('Enter resume | C-F fork | C-O hand off | C-N new here | C-T cloud here | C-P full transcript | '
           'C-X hide | C-U unhide all | C-Y copy id | C-R refresh')
@@ -162,26 +162,32 @@ def launch(cmd):
     os.execv(exe, cmd)
 
 
-def open_window():
-    me = self_command()[0]
-    custom = os.environ.get('AGENT_PICKER_TERMINAL')
+def window_argv(me, platform=sys.platform, custom=None, which=shutil.which):
+    # The terminal setting is a command prefix; {cmd} marks where the program goes if not at the end.
     if custom:
-        argv = shlex.split(custom) + me
-    elif sys.platform == 'darwin':
+        parts = shlex.split(custom)
+        if '{cmd}' in parts:
+            i = parts.index('{cmd}')
+            return parts[:i] + me + parts[i + 1:]
+        return parts + me
+    if platform == 'darwin':
         script = f'tell application "Terminal" to do script "{shlex.join(me)}"'
-        argv = ['osascript', '-e', script, '-e', 'tell application "Terminal" to activate']
-    elif sys.platform == 'win32':
-        argv = ['wt'] + me if shutil.which('wt') else ['cmd', '/c', 'start', ''] + me
-    else:
-        terminals = [('kitty', ['-e']), ('alacritty', ['-e']), ('foot', []), ('wezterm', ['start', '--']),
-                     ('gnome-terminal', ['--']), ('konsole', ['-e']), ('xfce4-terminal', ['-x']), ('xterm', ['-e'])]
-        argv = None
-        for name, flag in terminals:
-            if shutil.which(name):
-                argv = [name] + flag + me
-                break
-        if not argv:
-            sys.exit('aisp: no terminal found, set AGENT_PICKER_TERMINAL')
+        return ['osascript', '-e', script, '-e', 'tell application "Terminal" to activate']
+    if platform == 'win32':
+        return ['wt'] + me if which('wt') else ['cmd', '/c', 'start', ''] + me
+    terminals = [('kitty', ['-e']), ('alacritty', ['-e']), ('foot', []), ('wezterm', ['start', '--']),
+                 ('ghostty', ['-e']), ('gnome-terminal', ['--']), ('konsole', ['-e']), ('xfce4-terminal', ['-x']),
+                 ('xterm', ['-e'])]
+    for name, flag in terminals:
+        if which(name):
+            return [name] + flag + me
+    return None
+
+
+def open_window():
+    argv = window_argv(self_command()[0], custom=config.get('terminal'))
+    if not argv:
+        sys.exit('aisp: no terminal found, set one with: aisp config terminal "alacritty -e"')
     kwargs = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if sys.platform != 'win32':
         kwargs['start_new_session'] = True

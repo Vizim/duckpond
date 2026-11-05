@@ -33,3 +33,34 @@ jobs:
       - run: aisp --version
       - run: aisp doctor
         continue-on-error: true
+
+  installer:
+    name: installer / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - if: runner.os != 'Windows'
+        run: |
+          sh install.sh
+          ~/.local/bin/aisp --version
+          ~/.local/bin/aisp doctor || true
+          test -f ~/.local/share/applications/aisp.desktop || test -d "$HOME/Applications/AI Sessions.app"
+          sh install.sh --uninstall
+          test ! -e ~/.local/bin/aisp
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\install.ps1
+          $aisp = Join-Path $env:LOCALAPPDATA 'aisp\venv\Scripts\aisp.exe'
+          & $aisp --version
+          & $aisp doctor; if ($LASTEXITCODE -ne 0) { Write-Host 'doctor: no agents on the runner' }
+          Test-Path (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\AI Sessions.lnk')
+          .\install.ps1 -Uninstall
+          if (Test-Path $aisp) { throw 'aisp still installed' }
