@@ -8,6 +8,7 @@
 - `duckpond pond`: the agents running right now, as ducks on a pond. `duckpond` is an alias for `duckpond`.
 - SECURITY.md and an expanded privacy section.
 - CI runs on pull requests, tags and by hand instead of on every push.
+- Requirements section, `requirements.txt` (empty by design) and `requirements-dev.txt`.
 - `duckpond install-skills` gives Claude Code, Codex and Hermes a SKILL.md about duckpond and handoffs.
 - `duckpond pond` redrawn with the Braille mini duck and drifting water.
 - In-app guide: F1 in the picker and `duckpond help`. Mini duck header with a pond status line, a "back to" line on resume.

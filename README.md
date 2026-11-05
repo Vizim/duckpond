@@ -46,6 +46,18 @@ Watch the agents that are running right now with `duckpond pond`:
 
 Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 
+## Requirements
+
+| | Needed | Notes |
+| --- | --- | --- |
+| Python | 3.9 or newer | No Python packages; duckpond is standard library only. `requirements.txt` is empty on purpose, `requirements-dev.txt` has pytest |
+| fzf | 0.44 or newer | The installer fetches it if missing. Otherwise `brew install fzf`, `apt install fzf`, `winget install fzf` or a [release binary](https://github.com/junegunn/fzf/releases) |
+| An agent | any of Claude Code, Codex, Hermes | duckpond lists whatever it finds; the command must be on `PATH` to resume |
+| For the installer | `curl` or `wget`, and `python3 -m venv` | Debian and Ubuntu: `sudo apt install python3-venv`. Windows: PowerShell 5.1 or newer |
+| Optional | `wl-copy`, `xclip` or `xsel` on Linux | Only for Ctrl-Y copy id. macOS and Windows have `pbcopy` and `clip` built in |
+
+Linux, macOS and Windows are supported. Windows Terminal is used for `--window` when present, otherwise cmd.
+
 ## Install
 
 One line. It creates a private virtualenv, fetches fzf if you do not have it, registers an "AI Sessions" app with an icon, and runs a health check.
@@ -62,7 +74,7 @@ Windows (PowerShell):
 irm https://raw.githubusercontent.com/Vizim/duckpond/main/install.ps1 | iex
 ```
 
-Needs Python 3.9 or newer. Everything else is handled. Then:
+Then:
 
 ```sh
 duckpond            # in the current terminal
