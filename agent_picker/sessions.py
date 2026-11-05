@@ -625,6 +625,7 @@ USAGE = """aisp                       pick a session and resume it
 aisp --window              same, in a new terminal window
 aisp list [--json] [words]  print the session list (words filter it)
 aisp doctor                check agents, stores, fzf and the cache
+aisp install-launcher      add an "AI Sessions" app with an icon to this desktop
 aisp preview [--full] AGENT ID
 aisp export AGENT ID FILE   write a session as markdown
 aisp hide AGENT ID | aisp unhide-all | aisp copy TEXT"""

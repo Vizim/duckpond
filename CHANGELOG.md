@@ -2,6 +2,7 @@
 
 ## 0.3.0
 
+- `aisp install-launcher` registers an "AI Sessions" app with an icon on Linux, macOS and Windows.
 - Single `aisp` command with subcommands: `list`, `preview`, `export`, `hide`, `unhide-all`, `copy`, `doctor`.
 - `aisp list --json` for scripts and integrations.
 - `aisp doctor` reports agents, stores, fzf and cache state.

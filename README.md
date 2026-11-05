@@ -49,7 +49,23 @@ aisp --window   # in a new terminal window
 aisp doctor     # check agents, stores, fzf and the cache
 ```
 
-`--window` uses the first terminal it finds on Linux (kitty, alacritty, foot, wezterm, gnome-terminal, konsole, xfce4-terminal, xterm), Terminal.app on macOS and Windows Terminal or cmd on Windows. `packaging/aisp.desktop` is a launcher entry for Linux desktops.
+`--window` uses the first terminal it finds on Linux (kitty, alacritty, foot, wezterm, gnome-terminal, konsole, xfce4-terminal, xterm), Terminal.app on macOS and Windows Terminal or cmd on Windows.
+
+### App icon and launcher
+
+<img src="agent_picker/assets/aisp.svg" width="64" align="right" alt="aisp icon">
+
+```sh
+aisp install-launcher
+```
+
+puts an "AI Sessions" app with the icon where your desktop looks for apps, so you can pin it to a dock, panel or taskbar:
+
+- Linux: a desktop entry in `~/.local/share/applications` plus hicolor icons
+- macOS: `~/Applications/AI Sessions.app`, a tiny bundle that runs `aisp --window`
+- Windows: a Start Menu shortcut with the `.ico`, pin it to the taskbar from there
+
+The icon ships in the package as SVG, PNG, ICO and ICNS under `agent_picker/assets` if you want to use it elsewhere, for example in a status bar widget.
 
 Without installing, run it from a clone with `python -m agent_picker.cli`.
 

@@ -28,3 +28,6 @@ packages = ["agent_picker"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+agent_picker = ["assets/*"]

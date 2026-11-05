@@ -1,7 +1,7 @@
 """The aisp command: the picker by default, otherwise an indexer subcommand."""
 import sys
 
-from . import picker, sessions
+from . import launcher, picker, sessions
 
 USAGE = sessions.USAGE
 
@@ -25,6 +25,9 @@ def main():
         return
     if args[0] in ('-V', '--version'):
         print(f'aisp {version()}')
+        return
+    if args == ['install-launcher']:
+        print(launcher.install())
         return
     return sessions.main(args)
 
