@@ -8,13 +8,29 @@ import sys
 
 FG, BG, DIM = '#d4d4d8', '#101014', '#71717a'
 COLORS = {'32': '#4ade80', '36': '#22d3ee', '35': '#e879f9', '33': '#facc15',
-          '38;5;208': '#fb923c', '38;5;220': '#fbbf24'}
+          '38;5;208': '#fb923c', '38;5;220': '#fbbf24', '38;5;41': '#22c55e'}
 CW, LH, FS, PAD = 8.4, 20, 14, 18
 
 
 def width_of(text):
     # Braille cells are single width; CJK and emoji are not expected here.
     return len(text)
+
+
+BITS = [(0, 0, 0x01), (0, 1, 0x02), (0, 2, 0x04), (1, 0, 0x08), (1, 1, 0x10), (1, 2, 0x20), (0, 3, 0x40), (1, 3, 0x80)]
+
+
+def braille_dots(text, x0, baseline, color):
+    # Each Braille cell is a 2x4 dot grid filling one character cell.
+    out, px, py = [], CW / 2, LH / 4
+    top = baseline - LH + 4
+    for i, ch in enumerate(text):
+        code = ord(ch) - 0x2800
+        for dx, dy, bit in BITS:
+            if code & bit:
+                cx, cy = x0 + i * CW + dx * px + px / 2, top + dy * py + py / 2
+                out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="1.6" fill="{color}"/>')
+    return out
 
 
 def main(src, out):
@@ -47,8 +63,11 @@ def main(src, out):
                     color = f'#{int(r):02x}{int(g):02x}{int(b):02x}'
                 continue
             style = f'fill:{DIM if dim else color};' + ('font-weight:600;' if bold else '')
-            svg.append(f'<text x="{PAD + col * CW:.1f}" y="{y}" textLength="{width_of(part) * CW:.1f}" '
-                       f'lengthAdjust="spacingAndGlyphs" style="{style}">{html.escape(part)}</text>')
+            if all(0x2800 <= ord(ch) < 0x2900 for ch in part):
+                svg.extend(braille_dots(part, PAD + col * CW, y, DIM if dim else color))
+            else:
+                svg.append(f'<text x="{PAD + col * CW:.1f}" y="{y}" textLength="{width_of(part) * CW:.1f}" '
+                           f'lengthAdjust="spacingAndGlyphs" style="{style}">{html.escape(part)}</text>')
             col += width_of(part)
         y += LH
     svg.append('</svg>')

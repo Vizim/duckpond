@@ -29,6 +29,7 @@ uninstall() {
   [ -x "$VENV/bin/duckpond" ] && "$VENV/bin/duckpond" uninstall-launcher || true
   rm -rf "$DUCKPOND_HOME"
   [ -L "$DUCKPOND_BIN/duckpond" ] && rm -f "$DUCKPOND_BIN/duckpond"
+  [ -L "$DUCKPOND_BIN/aisp" ] && rm -f "$DUCKPOND_BIN/aisp"
   [ -f "$DUCKPOND_BIN/.duckpond-installed-fzf" ] && rm -f "$DUCKPOND_BIN/fzf" "$DUCKPOND_BIN/.duckpond-installed-fzf"
   cache="${DUCKPOND_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/agent-picker}"
   if [ -d "$cache" ] && ask "also remove the cache with session previews at $cache?"; then rm -rf "$cache"; fi
@@ -86,6 +87,7 @@ install() {
   "$VENV/bin/python" -m pip install -q --upgrade pip
   "$VENV/bin/python" -m pip install -q --upgrade "$src"
   ln -sf "$VENV/bin/duckpond" "$DUCKPOND_BIN/duckpond"
+  ln -sf "$VENV/bin/aisp" "$DUCKPOND_BIN/aisp"
   install_fzf
   case ":$PATH:" in *":$DUCKPOND_BIN:"*) ;; *) say ""; say "add this to your shell profile so the duckpond command is found:"; say "  export PATH=\"$DUCKPOND_BIN:\$PATH\""; say "" ;; esac
   export PATH="$DUCKPOND_BIN:$PATH"

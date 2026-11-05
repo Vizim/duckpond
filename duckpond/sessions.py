@@ -559,11 +559,11 @@ def list_sessions(terms, as_json=False):
         return
     for agent in agents:
         known.add(f'{agent}-__NEW__')
-        write_cached(f'{agent}-__NEW__', f"{BOLD}New {agent} session{RESET}\n\nStarts {agent} in {HOME}.\n"
+        write_cached(f'{agent}-__NEW__', f"{BOLD}Hatch a new {agent} session{RESET}\n\nStarts {agent} in {HOME}.\n"
                      f"Ctrl-N on any row starts a new session of that row's agent in its directory instead.\n")
         if not terms:
             color = AGENTS[agent]['color']
-            print(f"{agent}\t__NEW__\t{HOME}\t+ new {color}{agent}{RESET} session")
+            print(f"{agent}\t__NEW__\t{HOME}\t+ hatch a new {color}{agent}{RESET} session")
     if 'claude' in agents:
         known.add('claude-__CLOUD__')
         write_cached('claude-__CLOUD__', f"{BOLD}Cloud session by link{RESET}\n\nPaste a claude.ai/code link or session id and it is\n"

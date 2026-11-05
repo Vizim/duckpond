@@ -12,9 +12,14 @@ import time
 import urllib.request
 
 from . import config, sessions
+from .duck import TAGLINE
 
-HEADER = ('Enter resume | C-F fork | C-O hand off | C-N new here | C-T cloud here | C-P full transcript | '
+HEADER = (f'duckpond  {TAGLINE}\n'
+          'Enter resume | C-F fork | C-O hand off | C-N new here | C-T cloud here | C-P full transcript | '
           'C-X hide | C-U unhide all | C-Y copy id | C-R refresh')
+# fzf colours: pond green for the frame and pointer, agent colours stay inside the rows.
+THEME = 'fg:#d4d4d8,bg:-1,hl:#22c55e,fg+:#fafafa,bg+:#1f1f28,hl+:#86efac,prompt:#22c55e,pointer:#22c55e,'\
+        'header:#71717a,info:#71717a,border:#3f3f46,label:#22c55e,preview-border:#3f3f46'
 
 # Fork and cloud sessions exist only for claude; other agents fall back to resume or new.
 COMMANDS = {
@@ -91,7 +96,8 @@ def pick():
     env['PYTHONPATH'] = pkg_root + os.pathsep + env.get('PYTHONPATH', '')
     initial = subprocess.run(me_argv + ['list'], capture_output=True, env=env).stdout
     fzf = ['fzf', '--delimiter=\t', '--with-nth=4', '--ansi', '--reverse', '--height=100%', '--disabled',
-           '--prompt=sessions > ', '--expect=ctrl-n,ctrl-t,ctrl-f,ctrl-o', f'--listen=127.0.0.1:{port}', '--track',
+           '--prompt=pond › ', '--pointer=▶', '--border=rounded', '--border-label= duckpond ', '--border-label-pos=3',
+           f'--color={THEME}', '--expect=ctrl-n,ctrl-t,ctrl-f,ctrl-o', f'--listen=127.0.0.1:{port}', '--track',
            f'--bind=change:reload({me} list {{q}})', f'--bind=ctrl-r:reload({me} list {{q}})',
            f'--bind=ctrl-x:execute-silent({me} hide {{1}} {{2}})+reload({me} list {{q}})',
            f'--bind=ctrl-u:execute-silent({me} unhide-all)+reload({me} list {{q}})',

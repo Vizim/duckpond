@@ -4,9 +4,10 @@
 
 - Renamed to duckpond. The command is `duckpond`; `aisp` stays as a short alias. Cache moved to `~/.cache/duckpond`, settings to `~/.config/duckpond`.
 - One-line installers for Linux, macOS (`install.sh`) and Windows (`install.ps1`), with `--uninstall`, verified in CI.
-- Rubber duck app icon (SVG, PNG, ICO, ICNS) and the Braille duck banner in `duckpond --help` and `duckpond doctor`.
+- Green dithered-dot duck app icon (SVG, PNG, ICO, ICNS), the Braille duck banner in `duckpond --help` and `duckpond doctor`, and duck branding in the picker frame.
 - `duckpond pond`: the agents running right now, as ducks on a pond. `duckpond` is an alias for `duckpond`.
 - SECURITY.md and an expanded privacy section.
+- CI runs on pull requests, tags and by hand instead of on every push.
 - `duckpond config terminal "..."` picks the terminal used by `--window` and the app launcher.
 - `duckpond uninstall-launcher`.
 - `duckpond install-launcher` registers an "AI Sessions" app with an icon on Linux, macOS and Windows.
