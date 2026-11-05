@@ -50,7 +50,8 @@ def guide(color=True):
            '  cache     ~/.cache/duckpond        summaries, previews, handoff files; owner-only; safe to delete',
            '  settings  ~/.config/duckpond       config.ini, currently just the terminal command',
            '  hidden    ~/.cache/duckpond/hidden.json', '',
-           f'{DIM}Nothing leaves this machine. Agent stores are only ever read.{RESET}']
+           f'{DIM}Nothing leaves this machine. Agent stores are only ever read.{RESET}',
+           f'{DIM}Standard library Python plus fzf, nothing else. Nothing runs in the background.{RESET}']
     text = '\n'.join(out)
     if not color:
         import re

@@ -4,7 +4,7 @@
 
 You rubber-duck with AI coding agents all day. Claude Code, Codex, Hermes: each one keeps its own history, and each one only shows you the sessions for the folder you launched it from. After a week you have a pond full of ducks and no idea which one you were talking to.
 
-**duckpond** is one entry point for all of them. The `duckpond` command (or `aisp` for short) lists every session from every agent across every project, gives each one a title and a preview of what you asked and what the duck said back, and resumes the one you pick in the right directory with the right agent. It can hand a conversation from one duck to another, and it never lets your conversations leave the machine.
+**duckpond** is one small, dependency-free entry point for all of them. The `duckpond` command (or `aisp` for short) lists every session from every agent across every project, gives each one a title and a preview of what you asked and what the duck said back, and resumes the one you pick in the right directory with the right agent. It can hand a conversation from one duck to another, and it never lets your conversations leave the machine.
 
 ![duckpond showing Claude, Codex and Hermes sessions with a preview pane](docs/picker.svg)
 
@@ -17,6 +17,16 @@ Watch the agents that are running right now with `duckpond pond`:
 ![duckpond pond showing three running agents as ducks](docs/pond.svg)
 
 *All screenshots are rendered from generated sample data, never from real sessions.*
+
+## Light by design
+
+The whole point is that it costs almost nothing to have around.
+
+- **No dependencies.** Python's standard library plus the fzf binary. No pip packages, no Node, no Electron, no daemon.
+- **About 1,400 lines of Python**, 92 KB of code. The icons are the biggest thing in the package.
+- **Fast.** Listing every session on this machine takes about 60 ms and 25 MB of memory, because duckpond remembers how far into each transcript it has read and only scans the new bytes. fzf itself idles at under 4 MB.
+- **Nothing running in the background.** It only exists while the picker is open. Close it and it is gone.
+- **Nothing to configure** to get started. Install, run `duckpond`, done. The one setting there is, your terminal, has a sensible default.
 
 ## Features
 
