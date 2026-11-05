@@ -35,7 +35,7 @@ Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 
 ## Install
 
-Linux, macOS and Windows. Requires Python 3.8 or newer and [fzf](https://github.com/junegunn/fzf#installation) 0.44 or newer on your PATH, plus whichever agents you use.
+Linux, macOS and Windows. Requires Python 3.9 or newer and [fzf](https://github.com/junegunn/fzf#installation) 0.44 or newer on your PATH, plus whichever agents you use.
 
 ```sh
 pipx install git+https://github.com/Vizim/ai-session-picker
