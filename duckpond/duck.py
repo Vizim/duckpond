@@ -19,6 +19,24 @@ DUCK_ROWS = [
     '⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠛⠛⠛⠛⠛⠛⠛⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
 ]
 
+MINI_ROWS = [
+    '⠀⠀⠀⣰⠋⣙⢦⣤',
+    '⡼⠙⢦⣽⠄⠀⣼⠚',
+    '⣇⠀⠀⠀⠀⠀⣸⠀',
+    '⠙⠦⣤⣤⣤⠴⠋⠀',
+]
+
+
+def mini(lines, color=True):
+    # The small duck with up to four lines of text beside it.
+    lines = list(lines) + [''] * (len(MINI_ROWS) - len(lines))
+    out = []
+    for row, text in zip(MINI_ROWS, lines):
+        art = f'{GREEN}{row}{RESET}' if color else row
+        out.append(f'{art}  {text}'.rstrip())
+    return '\n'.join(out)
+
+
 TEXT_ROWS = {
     4: f'{BOLD}duckpond{RESET}',
     5: TAGLINE,

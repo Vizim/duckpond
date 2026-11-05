@@ -559,11 +559,11 @@ def list_sessions(terms, as_json=False):
         return
     for agent in agents:
         known.add(f'{agent}-__NEW__')
-        write_cached(f'{agent}-__NEW__', f"{BOLD}Hatch a new {agent} session{RESET}\n\nStarts {agent} in {HOME}.\n"
+        write_cached(f'{agent}-__NEW__', f"{BOLD}New {agent} session{RESET}\n\nStarts {agent} in {HOME}.\n"
                      f"Ctrl-N on any row starts a new session of that row's agent in its directory instead.\n")
         if not terms:
             color = AGENTS[agent]['color']
-            print(f"{agent}\t__NEW__\t{HOME}\t+ hatch a new {color}{agent}{RESET} session")
+            print(f"{agent}\t__NEW__\t{HOME}\t+ new {color}{agent}{RESET} session")
     if 'claude' in agents:
         known.add('claude-__CLOUD__')
         write_cached('claude-__CLOUD__', f"{BOLD}Cloud session by link{RESET}\n\nPaste a claude.ai/code link or session id and it is\n"
@@ -622,6 +622,15 @@ def doctor():
         print(f"{'':<10} {home}: {store}")
     rows, _ = session_rows([], live_claude(), set(load_json(HIDDEN, [])))
     print(f"sessions   {len(rows)} listed, {len(load_json(HIDDEN, []))} hidden, agents installed: {', '.join(found) or 'none'}")
+    print()
+    if fzf and found and rows:
+        print(f"{GREEN}the pond is open.{RESET} run: duckpond")
+    elif fzf and found:
+        print(f"{GREEN}the pond is open{RESET} but empty. run {' or '.join(found)} once and the session will show up here.")
+    elif not fzf:
+        print('install fzf and the pond is open.')
+    else:
+        print('no agents found on PATH. install Claude Code, Codex or Hermes and come back.')
     return 0 if fzf and found else 1
 
 

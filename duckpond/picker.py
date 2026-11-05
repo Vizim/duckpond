@@ -12,11 +12,23 @@ import time
 import urllib.request
 
 from . import config, sessions
-from .duck import TAGLINE
+from .duck import BOLD, DIM, GREEN, RESET, TAGLINE, mini
 
-HEADER = (f'duckpond  {TAGLINE}\n'
-          'Enter resume | C-F fork | C-O hand off | C-N new here | C-T cloud here | C-P full transcript | '
-          'C-X hide | C-U unhide all | C-Y copy id | C-R refresh')
+KEYS1 = 'Enter resume   C-O hand off   C-F fork   C-N new here   F1 help'
+KEYS2 = 'C-P transcript   C-T cloud   C-X hide   C-U unhide   C-Y copy id   C-R refresh'
+
+
+def header(rows):
+    # Four lines beside the mini duck: name and tagline, two lines of keys, and what is on the pond.
+    real = [r for r in rows if r.split('\t')[1:2] and not r.split('\t')[1].startswith('__')]
+    agents = sorted({r.split('\t')[0] for r in real})
+    if real:
+        status = f'{len(real)} session{"s" if len(real) != 1 else ""} on the pond from {", ".join(agents)}'
+    else:
+        status = 'the pond is empty. run claude, codex or hermes once and the session will show up here'
+    return mini([f'{BOLD}duckpond{RESET}  {DIM}{TAGLINE}{RESET}', KEYS1, KEYS2, f'{DIM}{status}{RESET}'])
+
+
 # fzf colours: pond green for the frame and pointer, agent colours stay inside the rows.
 THEME = 'fg:#d4d4d8,bg:-1,hl:#22c55e,fg+:#fafafa,bg+:#1f1f28,hl+:#86efac,prompt:#22c55e,pointer:#22c55e,'\
         'header:#71717a,info:#71717a,border:#3f3f46,label:#22c55e,preview-border:#3f3f46'
@@ -95,6 +107,7 @@ def pick():
     pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env['PYTHONPATH'] = pkg_root + os.pathsep + env.get('PYTHONPATH', '')
     initial = subprocess.run(me_argv + ['list'], capture_output=True, env=env).stdout
+    head = header(initial.decode('utf-8', 'replace').splitlines())
     fzf = ['fzf', '--delimiter=\t', '--with-nth=4', '--ansi', '--reverse', '--height=100%', '--disabled',
            '--prompt=pond › ', '--pointer=▶', '--border=rounded', '--border-label= duckpond ', '--border-label-pos=3',
            f'--color={THEME}', '--expect=ctrl-n,ctrl-t,ctrl-f,ctrl-o', f'--listen=127.0.0.1:{port}', '--track',
@@ -104,7 +117,8 @@ def pick():
            f'--bind=ctrl-y:execute-silent({me} copy {{2}})',
            f'--bind=ctrl-p:change-preview({me} preview --full {{1}} {{2}})',
            f'--bind=focus:change-preview({me} preview {{1}} {{2}})',
-           f'--header={HEADER}', f'--preview={me} preview {{1}} {{2}}',
+           f'--bind=f1:change-preview({me} help)',
+           f'--header={head}', f'--preview={me} preview {{1}} {{2}}',
            '--preview-window=right,50%,wrap,<110(down,45%,wrap)']
     proc = subprocess.Popen(fzf, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
     threading.Thread(target=watch, args=(proc, port, key, me), daemon=True).start()
@@ -113,7 +127,7 @@ def pick():
     if len(lines) < 2 or not lines[1].strip():
         return
     pressed, sel = lines[0], lines[1]
-    agent, sid, where = (sel.split('\t') + ['', '', ''])[:3]
+    agent, sid, where, label = (sel.split('\t') + ['', '', '', ''])[:4]
     try:
         os.chdir(where)
     except OSError:
@@ -126,6 +140,9 @@ def pick():
         cmd = handoff(agent, sid, me_argv, env)
     else:
         cmd = spec[action]
+    if action in ('resume', 'fork'):
+        title = re.split(r'\s{2,}', re.sub(r'\x1b\[[0-9;]*m', '', label).strip())[-1]
+        print(f"{GREEN}\u25b6{RESET} back to {BOLD}{title}{RESET}  {DIM}{agent} \u00b7 {os.path.basename(where.rstrip(os.sep)) or where}{RESET}")
     launch([c.replace('{sid}', sid) for c in cmd])
 
 

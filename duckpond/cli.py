@@ -1,7 +1,7 @@
 """The duckpond command: the picker by default, otherwise an indexer subcommand."""
 import sys
 
-from . import config, launcher, picker, pond, sessions
+from . import config, help as guide, launcher, picker, pond, sessions
 from .duck import DUCK
 
 USAGE = sessions.USAGE
@@ -21,9 +21,13 @@ def main():
         return picker.main()
     if args == ['--window']:
         return picker.open_window()
-    if args[0] in ('-h', '--help', 'help'):
+    if args[0] == 'help':
+        print(guide.guide())
+        return
+    if args[0] in ('-h', '--help'):
         print(DUCK)
         print(USAGE)
+        print('\nduckpond help    the full guide: keys, handoff, where things live')
         return
     if args[0] in ('-V', '--version'):
         print(f'duckpond {version()}')

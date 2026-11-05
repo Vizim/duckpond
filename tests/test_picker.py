@@ -70,3 +70,24 @@ def test_pond_frame_layout():
         assert sum(line.count('<(o )___') for line in lines) == 3
         assert all(len(line) <= 80 for line in lines)
         assert 'redis cache' in lines[-1] and 'Reconcile October' in lines[-1]
+
+
+def test_header_and_mini_duck():
+    import re
+    from duckpond import duck
+    assert len(duck.MINI_ROWS) == 4 and len({len(r) for r in duck.MINI_ROWS}) == 1
+    rows = ['claude\t__NEW__\t/h\t+ new claude session', 'claude\tabc\t/h\tx', 'codex\tdef\t/h\ty']
+    text = re.sub(r'\x1b\[[0-9;]*m', '', picker.header(rows))
+    assert 'duckpond' in text and 'all your AI sessions, one pond' in text
+    assert '2 sessions on the pond from claude, codex' in text
+    assert 'the pond is empty' in picker.header(rows[:1])
+
+
+def test_guide_mentions_every_key_in_the_header():
+    import re
+    from duckpond import help as guide
+    text = guide.guide(color=False)
+    for key in ('Enter', 'Ctrl-O', 'Ctrl-F', 'Ctrl-N', 'Ctrl-T', 'Ctrl-P', 'Ctrl-X', 'Ctrl-U', 'Ctrl-Y', 'Ctrl-R', 'F1'):
+        assert key in text
+    assert 'duckpond pond' in text and '~/.cache/duckpond' in text
+    assert not re.search(r'\x1b', text)

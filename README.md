@@ -40,8 +40,9 @@ Watch the ducks that are running right now with `duckpond pond`:
 | Ctrl-U | Unhide everything |
 | Ctrl-Y | Copy the session id |
 | Ctrl-R | Refresh |
+| F1 | The guide, inside the picker |
 
-Outside the picker: `duckpond pond` shows the agents running right now as ducks on a pond, `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup. `aisp` (AI session picker) is a short alias for `duckpond`.
+`duckpond help` prints the same guide in the terminal. Outside the picker: `duckpond pond` shows the agents running right now as ducks on a pond, `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup. `aisp` (AI session picker) is a short alias for `duckpond`.
 
 Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 

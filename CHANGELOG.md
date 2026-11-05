@@ -8,6 +8,7 @@
 - `duckpond pond`: the agents running right now, as ducks on a pond. `duckpond` is an alias for `duckpond`.
 - SECURITY.md and an expanded privacy section.
 - CI runs on pull requests, tags and by hand instead of on every push.
+- In-app guide: F1 in the picker and `duckpond help`. Mini duck header with a pond status line, a "back to" line on resume.
 - `duckpond config terminal "..."` picks the terminal used by `--window` and the app launcher.
 - `duckpond uninstall-launcher`.
 - `duckpond install-launcher` registers an "AI Sessions" app with an icon on Linux, macOS and Windows.
