@@ -14,19 +14,16 @@ import urllib.request
 from . import config, sessions
 from .duck import BOLD, DIM, GREEN, RESET, TAGLINE, mini
 
-KEYS1 = 'Enter resume   C-O hand off   C-F fork   C-N new here   F1 help'
-KEYS2 = 'C-P transcript   C-T cloud   C-X hide   C-U unhide   C-Y copy id   C-R refresh'
-
-
 def header(rows):
-    # Four lines beside the mini duck: name and tagline, two lines of keys, and what is on the pond.
+    # Beside the mini duck: name and tagline, what is listed, and where help lives.
     real = [r for r in rows if r.split('\t')[1:2] and not r.split('\t')[1].startswith('__')]
     agents = sorted({r.split('\t')[0] for r in real})
     if real:
         status = f'{len(real)} session{"s" if len(real) != 1 else ""} from {", ".join(agents)}'
     else:
         status = 'no sessions yet. run claude, codex or hermes once and it will show up here'
-    return mini([f'{BOLD}duckpond{RESET}  {DIM}{TAGLINE}{RESET}', KEYS1, KEYS2, f'{DIM}{status}{RESET}'])
+    return mini([f'{BOLD}duckpond{RESET}  {DIM}{TAGLINE}{RESET}', f'{DIM}{status}{RESET}', '',
+                 f'Have a question? Hit {BOLD}F1{RESET} for the help menu.'])
 
 
 # fzf colours: pond green for the frame and pointer, agent colours stay inside the rows.
