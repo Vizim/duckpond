@@ -1,20 +1,20 @@
 #!/bin/sh
-# aisp installer for Linux and macOS.
+# duckpond installer for Linux and macOS.
 #
-#   curl -fsSL https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Vizim/duckpond/main/install.sh | sh
 #   sh install.sh --uninstall
 #
-# Installs into a private virtualenv under $AISP_HOME (default ~/.local/share/aisp), links aisp into
-# $AISP_BIN (default ~/.local/bin), fetches fzf there if missing, and registers the app launcher.
+# Installs into a private virtualenv under $DUCKPOND_HOME (default ~/.local/share/duckpond), links duckpond into
+# $DUCKPOND_BIN (default ~/.local/bin), fetches fzf there if missing, and registers the app launcher.
 set -eu
 
-REPO="https://github.com/Vizim/ai-session-picker"
-AISP_HOME="${AISP_HOME:-$HOME/.local/share/aisp}"
-AISP_BIN="${AISP_BIN:-$HOME/.local/bin}"
-VENV="$AISP_HOME/venv"
+REPO="https://github.com/Vizim/duckpond"
+DUCKPOND_HOME="${DUCKPOND_HOME:-$HOME/.local/share/duckpond}"
+DUCKPOND_BIN="${DUCKPOND_BIN:-$HOME/.local/bin}"
+VENV="$DUCKPOND_HOME/venv"
 
 say() { printf '%s\n' "$*"; }
-die() { printf 'aisp install: %s\n' "$*" >&2; exit 1; }
+die() { printf 'duckpond install: %s\n' "$*" >&2; exit 1; }
 ask() {  # ask "question" -> 0 for yes; defaults to no when there is no terminal
   reply=""
   if [ -t 0 ]; then
@@ -26,13 +26,13 @@ ask() {  # ask "question" -> 0 for yes; defaults to no when there is no terminal
 }
 
 uninstall() {
-  [ -x "$VENV/bin/aisp" ] && "$VENV/bin/aisp" uninstall-launcher || true
-  rm -rf "$AISP_HOME"
-  [ -L "$AISP_BIN/aisp" ] && rm -f "$AISP_BIN/aisp"
-  [ -f "$AISP_BIN/.aisp-installed-fzf" ] && rm -f "$AISP_BIN/fzf" "$AISP_BIN/.aisp-installed-fzf"
-  cache="${AGENT_PICKER_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/agent-picker}"
+  [ -x "$VENV/bin/duckpond" ] && "$VENV/bin/duckpond" uninstall-launcher || true
+  rm -rf "$DUCKPOND_HOME"
+  [ -L "$DUCKPOND_BIN/duckpond" ] && rm -f "$DUCKPOND_BIN/duckpond"
+  [ -f "$DUCKPOND_BIN/.duckpond-installed-fzf" ] && rm -f "$DUCKPOND_BIN/fzf" "$DUCKPOND_BIN/.duckpond-installed-fzf"
+  cache="${DUCKPOND_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/agent-picker}"
   if [ -d "$cache" ] && ask "also remove the cache with session previews at $cache?"; then rm -rf "$cache"; fi
-  say "aisp removed"
+  say "duckpond removed"
 }
 
 find_python() {
@@ -51,12 +51,21 @@ install_fzf() {
   fi
   os=$(uname -s | tr '[:upper:]' '[:lower:]'); arch=$(uname -m)
   case "$arch" in x86_64|amd64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; armv7l) arch=armv7 ;; *) die "no fzf build for $arch, install fzf yourself: https://github.com/junegunn/fzf#installation" ;; esac
-  ver=$(fetch https://api.github.com/repos/junegunn/fzf/releases/latest | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n1)
-  [ -n "$ver" ] || die "could not look up the latest fzf release"
-  say "installing fzf $ver into $AISP_BIN"
+  ver=$(latest_fzf) || die "could not look up the latest fzf release, install fzf yourself: https://github.com/junegunn/fzf#installation"
+  say "installing fzf $ver into $DUCKPOND_BIN"
   tmp=$(mktemp -d); fetch "https://github.com/junegunn/fzf/releases/download/v$ver/fzf-$ver-${os}_$arch.tar.gz" >"$tmp/fzf.tgz"
-  tar -xzf "$tmp/fzf.tgz" -C "$tmp" && install -m 755 "$tmp/fzf" "$AISP_BIN/fzf" && touch "$AISP_BIN/.aisp-installed-fzf"
+  tar -xzf "$tmp/fzf.tgz" -C "$tmp" && install -m 755 "$tmp/fzf" "$DUCKPOND_BIN/fzf" && touch "$DUCKPOND_BIN/.duckpond-installed-fzf"
   rm -rf "$tmp"
+}
+
+latest_fzf() {
+  # The release redirect needs no API quota; the API is the fallback, with a token when one is set.
+  ver=$(curl -fsSI -o /dev/null -w '%{redirect_url}' https://github.com/junegunn/fzf/releases/latest 2>/dev/null | sed -n 's#.*/tag/v\{0,1\}##p')
+  if [ -z "$ver" ]; then
+    auth=""; [ -n "${GITHUB_TOKEN:-}" ] && auth="Authorization: Bearer $GITHUB_TOKEN"
+    ver=$(curl -fsSL ${auth:+-H "$auth"} https://api.github.com/repos/junegunn/fzf/releases/latest 2>/dev/null | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n1)
+  fi
+  [ -n "$ver" ] && printf '%s\n' "$ver"
 }
 
 fetch() {
@@ -67,24 +76,24 @@ fetch() {
 
 install() {
   py=$(find_python) || die "python 3.9 or newer is required (https://www.python.org/downloads/)"
-  mkdir -p "$AISP_HOME" "$AISP_BIN"
+  mkdir -p "$DUCKPOND_HOME" "$DUCKPOND_BIN"
   say "creating virtualenv in $VENV"
   "$py" -m venv "$VENV" 2>/dev/null || die "could not create a virtualenv; on Debian or Ubuntu run: sudo apt install python3-venv"
   src="git+$REPO"
   here=$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)
   [ -n "$here" ] && [ -f "$here/pyproject.toml" ] && src="$here"
-  say "installing aisp from $src"
+  say "installing duckpond from $src"
   "$VENV/bin/python" -m pip install -q --upgrade pip
   "$VENV/bin/python" -m pip install -q --upgrade "$src"
-  ln -sf "$VENV/bin/aisp" "$AISP_BIN/aisp"
+  ln -sf "$VENV/bin/duckpond" "$DUCKPOND_BIN/duckpond"
   install_fzf
-  case ":$PATH:" in *":$AISP_BIN:"*) ;; *) say ""; say "add this to your shell profile so the aisp command is found:"; say "  export PATH=\"$AISP_BIN:\$PATH\""; say "" ;; esac
-  export PATH="$AISP_BIN:$PATH"
-  "$VENV/bin/aisp" install-launcher || say "launcher not registered, run 'aisp install-launcher' later"
+  case ":$PATH:" in *":$DUCKPOND_BIN:"*) ;; *) say ""; say "add this to your shell profile so the duckpond command is found:"; say "  export PATH=\"$DUCKPOND_BIN:\$PATH\""; say "" ;; esac
+  export PATH="$DUCKPOND_BIN:$PATH"
+  "$VENV/bin/duckpond" install-launcher || say "launcher not registered, run 'duckpond install-launcher' later"
   say ""
-  "$VENV/bin/aisp" doctor || true
+  "$VENV/bin/duckpond" doctor || true
   say ""
-  say "done. run: aisp"
+  say "done. run: duckpond"
 }
 
 case "${1:-}" in

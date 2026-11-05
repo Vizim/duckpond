@@ -27,10 +27,10 @@ COMMANDS = {
 
 def self_command():
     # Returns argv for this program and the same command as a string for fzf bindings.
-    exe = shutil.which('aisp')
+    exe = shutil.which('duckpond') or shutil.which('aisp')
     if exe:
-        return [exe], 'aisp'
-    return [sys.executable, '-m', 'agent_picker.cli'], f'"{sys.executable}" -m agent_picker.cli'
+        return [exe], os.path.basename(exe).replace('.exe', '')
+    return [sys.executable, '-m', 'duckpond.cli'], f'"{sys.executable}" -m duckpond.cli'
 
 
 def decide(pressed, agent, sid):
@@ -83,10 +83,10 @@ def watch(proc, port, key, idx):
 
 def pick():
     if not shutil.which('fzf'):
-        sys.exit('aisp: fzf not found, see https://github.com/junegunn/fzf#installation')
+        sys.exit('duckpond: fzf not found, see https://github.com/junegunn/fzf#installation')
     me_argv, me = self_command()
     key, port = secrets.token_hex(16), free_port()
-    env = dict(os.environ, FZF_API_KEY=key, AGENT_PICKER_CACHE=sessions.CACHE)
+    env = dict(os.environ, FZF_API_KEY=key, DUCKPOND_CACHE=sessions.CACHE)
     pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env['PYTHONPATH'] = pkg_root + os.pathsep + env.get('PYTHONPATH', '')
     initial = subprocess.run(me_argv + ['list'], capture_output=True, env=env).stdout
@@ -127,7 +127,7 @@ def handoff(agent, sid, me_argv, env):
     # Export the conversation to a private file and open another agent on it in the same directory.
     targets = [a for a in sessions.installed() if a != agent]
     if not targets:
-        sys.exit('aisp: no other agent installed')
+        sys.exit('duckpond: no other agent installed')
     menu = subprocess.run(['fzf', '--reverse', '--height=100%', '--prompt=hand off to > ', '--no-info'],
                           input='\n'.join(targets).encode(), stdout=subprocess.PIPE)
     target = menu.stdout.decode().strip()
@@ -135,7 +135,7 @@ def handoff(agent, sid, me_argv, env):
         sys.exit(0)
     out = os.path.join(sessions.CACHE, f'handoff-{agent}-{sid}.md')
     if subprocess.run(me_argv + ['export', agent, sid, out], env=env).returncode != 0:
-        sys.exit('aisp: export failed')
+        sys.exit('duckpond: export failed')
     prompt = (f'You are taking over from a {agent} session. Read {out} for the full conversation so far, '
               f'then continue from where it left off.')
     if target == 'hermes':
@@ -156,7 +156,7 @@ def cloud_by_link():
 def launch(cmd):
     exe = shutil.which(cmd[0])
     if not exe:
-        sys.exit(f'aisp: {cmd[0]} not found')
+        sys.exit(f'duckpond: {cmd[0]} not found')
     if sys.platform == 'win32':
         sys.exit(subprocess.call([exe] + cmd[1:]))
     os.execv(exe, cmd)
@@ -187,7 +187,7 @@ def window_argv(me, platform=sys.platform, custom=None, which=shutil.which):
 def open_window():
     argv = window_argv(self_command()[0], custom=config.get('terminal'))
     if not argv:
-        sys.exit('aisp: no terminal found, set one with: aisp config terminal "alacritty -e"')
+        sys.exit('duckpond: no terminal found, set one with: duckpond config terminal "alacritty -e"')
     kwargs = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if sys.platform != 'win32':
         kwargs['start_new_session'] = True

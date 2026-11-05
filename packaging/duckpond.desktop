@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=AI Sessions
+Name=Duckpond
 Comment=Pick and resume a recent Claude Code, Codex or Hermes session
-Exec=aisp --window
-Icon=aisp
+Exec=duckpond --window
+Icon=duckpond
 Terminal=false
 Categories=Development;

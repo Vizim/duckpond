@@ -1,4 +1,4 @@
-from agent_picker import picker
+from duckpond import picker
 
 
 def test_enter_resumes_and_new_rows_start_new():
@@ -29,32 +29,44 @@ def test_commands_substitute_session_id():
 
 
 def test_window_argv_custom_terminal():
-    me = ['/x/aisp']
-    assert picker.window_argv(me, custom='alacritty -e') == ['alacritty', '-e', '/x/aisp']
-    assert picker.window_argv(me, custom='gnome-terminal -- {cmd}') == ['gnome-terminal', '--', '/x/aisp']
-    assert picker.window_argv(me, custom='wezterm start -- {cmd} --flag') == ['wezterm', 'start', '--', '/x/aisp', '--flag']
+    me = ['/x/duckpond']
+    assert picker.window_argv(me, custom='alacritty -e') == ['alacritty', '-e', '/x/duckpond']
+    assert picker.window_argv(me, custom='gnome-terminal -- {cmd}') == ['gnome-terminal', '--', '/x/duckpond']
+    assert picker.window_argv(me, custom='wezterm start -- {cmd} --flag') == ['wezterm', 'start', '--', '/x/duckpond', '--flag']
 
 
 def test_window_argv_defaults_per_platform():
-    me = ['/x/aisp']
+    me = ['/x/duckpond']
     assert picker.window_argv(me, platform='darwin')[0] == 'osascript'
-    assert picker.window_argv(me, platform='win32', which=lambda n: n == 'wt') == ['wt', '/x/aisp']
+    assert picker.window_argv(me, platform='win32', which=lambda n: n == 'wt') == ['wt', '/x/duckpond']
     assert picker.window_argv(me, platform='win32', which=lambda n: False)[:3] == ['cmd', '/c', 'start']
-    assert picker.window_argv(me, platform='linux', which=lambda n: n == 'kitty') == ['kitty', '-e', '/x/aisp']
+    assert picker.window_argv(me, platform='linux', which=lambda n: n == 'kitty') == ['kitty', '-e', '/x/duckpond']
     assert picker.window_argv(me, platform='linux', which=lambda n: False) is None
 
 
 def test_config_roundtrip(tmp_path, monkeypatch):
-    from agent_picker import config
+    from duckpond import config
     monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path))
     monkeypatch.setenv('APPDATA', str(tmp_path))
-    monkeypatch.delenv('AISP_TERMINAL', raising=False)
-    monkeypatch.delenv('AGENT_PICKER_TERMINAL', raising=False)
+    monkeypatch.delenv('DUCKPOND_TERMINAL', raising=False)
+    monkeypatch.delenv('DUCKPOND_TERMINAL', raising=False)
     assert config.get('terminal') is None
     config.set_value('terminal', 'foot')
     assert config.get('terminal') == 'foot'
-    monkeypatch.setenv('AISP_TERMINAL', 'kitty -e')
+    monkeypatch.setenv('DUCKPOND_TERMINAL', 'kitty -e')
     assert config.get('terminal') == 'kitty -e'
-    monkeypatch.delenv('AISP_TERMINAL')
+    monkeypatch.delenv('DUCKPOND_TERMINAL')
     config.set_value('terminal', '')
     assert config.get('terminal') is None
+
+
+def test_pond_frame_layout():
+    from duckpond import pond
+    empty = pond.plain(pond.frame([], 60, 0))
+    assert any('no ducks' in line for line in empty)
+    ducks = [('claude', 'Rate limiter returns 429'), ('codex', 'redis cache'), ('hermes', 'Reconcile October')]
+    for t in (0, 1):
+        lines = pond.plain(pond.frame(ducks, 80, t))
+        assert sum(line.count('<(o )___') for line in lines) == 3
+        assert all(len(line) <= 80 for line in lines)
+        assert 'redis cache' in lines[-1] and 'Reconcile October' in lines[-1]

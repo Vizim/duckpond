@@ -2,14 +2,17 @@
 
 ## 0.3.0
 
+- Renamed to duckpond. The command is `duckpond`; `aisp` stays as a short alias. Cache moved to `~/.cache/duckpond`, settings to `~/.config/duckpond`.
 - One-line installers for Linux, macOS (`install.sh`) and Windows (`install.ps1`), with `--uninstall`, verified in CI.
-- Rubber duck app icon (SVG, PNG, ICO, ICNS) and ASCII duck in `aisp --help` and `aisp doctor`.
-- `aisp config terminal "..."` picks the terminal used by `--window` and the app launcher.
-- `aisp uninstall-launcher`.
-- `aisp install-launcher` registers an "AI Sessions" app with an icon on Linux, macOS and Windows.
-- Single `aisp` command with subcommands: `list`, `preview`, `export`, `hide`, `unhide-all`, `copy`, `doctor`.
-- `aisp list --json` for scripts and integrations.
-- `aisp doctor` reports agents, stores, fzf and cache state.
+- Rubber duck app icon (SVG, PNG, ICO, ICNS) and the Braille duck banner in `duckpond --help` and `duckpond doctor`.
+- `duckpond pond`: the agents running right now, as ducks on a pond. `duckpond` is an alias for `duckpond`.
+- SECURITY.md and an expanded privacy section.
+- `duckpond config terminal "..."` picks the terminal used by `--window` and the app launcher.
+- `duckpond uninstall-launcher`.
+- `duckpond install-launcher` registers an "AI Sessions" app with an icon on Linux, macOS and Windows.
+- Single `duckpond` command with subcommands: `list`, `preview`, `export`, `hide`, `unhide-all`, `copy`, `doctor`.
+- `duckpond list --json` for scripts and integrations.
+- `duckpond doctor` reports agents, stores, fzf and cache state.
 - Ctrl-P shows the full transcript in the preview pane.
 - Test suite with generated sample stores, CI on Linux, macOS and Windows.
 - Hermes database opened through a file URI so Windows paths work.

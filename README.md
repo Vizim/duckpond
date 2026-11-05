@@ -1,23 +1,22 @@
-# ai-session-picker
+# duckpond
 
-```
-      __
-    <(o )___      aisp
-     ( ._> /      get back to the duck you were talking to
-      `---'
-```
+![duckpond](docs/duck.svg)
 
-One picker for every coding-agent session on your machine: [Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex) and [Hermes](https://github.com/NousResearch/hermes-agent), across all projects, in fzf.
+You rubber-duck with AI coding agents all day. Claude Code, Codex, Hermes: each one keeps its own history, and each one only shows you the sessions for the folder you launched it from. After a week you have a pond full of ducks and no idea which one you were talking to.
 
-You rubber-duck with these agents all day. Each one keeps its own history, and each one only shows you the sessions for the folder you launched it from. `aisp` reads all of them, gives every session a title and a preview of what you asked and what the duck said back, and resumes the one you pick in the right directory with the right agent. It can also hand a conversation from one duck to another.
+**duckpond** is one entry point for all of them. The `duckpond` command (or `aisp` for short) lists every session from every agent across every project, gives each one a title and a preview of what you asked and what the duck said back, and resumes the one you pick in the right directory with the right agent. It can hand a conversation from one duck to another, and it never lets your conversations leave the machine.
 
-![aisp showing Claude, Codex and Hermes sessions with a preview pane](docs/picker.svg)
+![duckpond showing Claude, Codex and Hermes sessions with a preview pane](docs/picker.svg)
 
-Type to search, press Ctrl-P for the whole transcript:
+Type to search. Ctrl-P shows the whole transcript:
 
 ![searching for rocket with the full transcript in the preview](docs/search.svg)
 
-*Screenshots are rendered from generated sample data, not real sessions.*
+Watch the ducks that are running right now with `duckpond pond`:
+
+![duckpond pond showing three running agents as ducks](docs/pond.svg)
+
+*All screenshots are rendered from generated sample data, never from real sessions.*
 
 ## Features
 
@@ -42,6 +41,8 @@ Type to search, press Ctrl-P for the whole transcript:
 | Ctrl-Y | Copy the session id |
 | Ctrl-R | Refresh |
 
+Outside the picker: `duckpond pond` shows the agents running right now as ducks on a pond, `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup. `aisp` (AI session picker) is a short alias for `duckpond`.
+
 Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 
 ## Install
@@ -51,74 +52,74 @@ One line. It creates a private virtualenv, fetches fzf if you do not have it, re
 Linux and macOS:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Vizim/duckpond/main/install.sh | sh
 ```
 
 Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Vizim/duckpond/main/install.ps1 | iex
 ```
 
 Needs Python 3.9 or newer. Everything else is handled. Then:
 
 ```sh
-aisp            # in the current terminal
-aisp --window   # in a new terminal window
-aisp doctor     # check agents, stores, fzf and the cache
+duckpond            # in the current terminal
+duckpond --window   # in a new terminal window
+duckpond doctor     # check agents, stores, fzf and the cache
 ```
 
-![aisp doctor output](docs/doctor.svg)
+![duckpond doctor output](docs/doctor.svg)
 
 Remove it just as easily. This takes the virtualenv, the command, the launcher and, if you say yes, the cache with it:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.sh | sh -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/Vizim/duckpond/main/install.sh | sh -s -- --uninstall
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Vizim/ai-session-picker/main/install.ps1))) -Uninstall
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Vizim/duckpond/main/install.ps1))) -Uninstall
 ```
 
-Prefer your own tooling? `pipx install git+https://github.com/Vizim/ai-session-picker` works too, as does `pip install .` from a clone; install [fzf](https://github.com/junegunn/fzf#installation) 0.44 or newer yourself in that case.
+Prefer your own tooling? `pipx install git+https://github.com/Vizim/duckpond` works too, as does `pip install .` from a clone; install [fzf](https://github.com/junegunn/fzf#installation) 0.44 or newer yourself in that case.
 
 `--window` uses the first terminal it finds on Linux (kitty, alacritty, foot, wezterm, gnome-terminal, konsole, xfce4-terminal, xterm), Terminal.app on macOS and Windows Terminal or cmd on Windows.
 
 ### App icon and launcher
 
-<img src="agent_picker/assets/aisp.svg" width="64" align="right" alt="aisp icon">
+<img src="duckpond/assets/duckpond.svg" width="64" align="right" alt="duckpond icon">
 
-The installer runs `aisp install-launcher`, which puts an "AI Sessions" app with the icon where your desktop looks for apps, so you can pin it to a dock, panel or taskbar:
+The installer runs `duckpond install-launcher`, which puts an "AI Sessions" app with the icon where your desktop looks for apps, so you can pin it to a dock, panel or taskbar:
 
 - Linux: a desktop entry in `~/.local/share/applications` plus hicolor icons
-- macOS: `~/Applications/AI Sessions.app`, a tiny bundle that runs `aisp --window`
+- macOS: `~/Applications/Duckpond.app`, a tiny bundle that runs `duckpond --window`
 - Windows: a Start Menu shortcut with the `.ico`, pin it to the taskbar from there
 
-`aisp uninstall-launcher` removes it. The icon ships in the package as SVG, PNG, ICO and ICNS under `agent_picker/assets` if you want to use it elsewhere, for example in a status bar widget.
+`duckpond uninstall-launcher` removes it. The icon ships in the package as SVG, PNG, ICO and ICNS under `duckpond/assets` if you want to use it elsewhere, for example in a status bar widget.
 
 ## Configuration
 
-Settings live in `~/.config/aisp/config.ini` (`%APPDATA%\aisp\config.ini` on Windows) and are changed with `aisp config`:
+Settings live in `~/.config/duckpond/config.ini` (`%APPDATA%\duckpond\config.ini` on Windows) and are changed with `duckpond config`:
 
 ```sh
-aisp config                          # show settings and where the file is
-aisp config terminal "alacritty -e"  # use alacritty for --window and the app launcher
-aisp config terminal ""              # back to auto-detect
+duckpond config                          # show settings and where the file is
+duckpond config terminal "alacritty -e"  # use alacritty for --window and the app launcher
+duckpond config terminal ""              # back to auto-detect
 ```
 
 Environment variables override the file for one run:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `AISP_TERMINAL` | per OS | Command that opens a terminal window running the program after it, e.g. `alacritty -e` or `gnome-terminal -- {cmd}` |
-| `AGENT_PICKER_CACHE` | `~/.cache/agent-picker` | Index, previews, handoff files and the hidden list |
+| `DUCKPOND_TERMINAL` | per OS | Command that opens a terminal window running the program after it, e.g. `alacritty -e` or `gnome-terminal -- {cmd}` |
+| `DUCKPOND_CACHE` | `~/.cache/duckpond` | Index, previews, handoff files and the hidden list |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Where Claude Code keeps its transcripts |
 | `CODEX_HOME` | `~/.codex` | Where Codex keeps its rollouts |
 | `HERMES_HOME` | `~/.hermes` | Where Hermes keeps its SQLite store |
 
 ## Scripting
 
-`aisp list --json` prints every session as JSON (agent, id, directory, project, branch, title, last activity, prompt count, cost, first prompt, last reply), newest first. `aisp list codex rocket` applies the same search the picker does. `aisp export AGENT ID FILE` writes one conversation as markdown.
+`duckpond list --json` prints every session as JSON (agent, id, directory, project, branch, title, last activity, prompt count, cost, first prompt, last reply), newest first. `duckpond list codex rocket` applies the same search the picker does. `duckpond export AGENT ID FILE` writes one conversation as markdown.
 
 ## Handing off between agents
 
@@ -126,22 +127,26 @@ Press Ctrl-O on a session and pick the target agent. The picker writes the conve
 
 ## Privacy
 
-Everything stays on your machine.
+Your conversations with these agents are some of the most personal data on your computer. duckpond treats them that way.
 
-- Session stores are only ever read. Transcript files are opened read-only and the Hermes database is opened in SQLite read-only mode.
-- The cache holds copies of prompts and replies, so it is created with owner-only permissions (`0700` directory, `0600` files).
-- The only network traffic is fzf's control socket on `127.0.0.1`, protected by a random per-launch key, which the picker uses to refresh the list. Nothing is sent anywhere else. Ctrl-T and the cloud-link row call Claude Code's own `--teleport`, which talks to Anthropic on your behalf and only when you ask.
-- Hiding a row writes its id to `hidden.json`. Nothing is deleted.
+- **Nothing leaves the machine.** There is no server, no telemetry, no update check and no analytics. The only socket it opens is fzf's control port on `127.0.0.1`, protected by a random key for each launch, which the picker uses to refresh its own list.
+- **Agent stores are read, never written.** Transcript files are opened read-only and the Hermes database is opened in SQLite read-only mode. Hiding a session writes its id to duckpond's own cache. Nothing in `~/.claude`, `~/.codex` or `~/.hermes` is ever modified or deleted.
+- **No credentials.** duckpond does not read, store or pass along any token. Each agent signs in through its own flow. duckpond runs `claude`, `codex` or `hermes` exactly as you would in a shell.
+- **The cache is yours and private.** `~/.cache/duckpond` holds session summaries, previews and any handoff exports. It is created with owner-only permissions (`0700` directory, `0600` files). `sh install.sh --uninstall` offers to remove it, or delete it by hand at any time; duckpond rebuilds it.
+- **Handoffs are explicit.** Pressing Ctrl-O writes one conversation to a markdown file in the cache and opens the agent you chose on it. Which agent sees which conversation is always your keypress.
+- **The one exception is Claude's own cloud feature.** Ctrl-T and the cloud-link row run `claude --teleport`, which talks to Anthropic on your behalf. It only runs when you press it.
+
+The full list of paths touched and the threat model are in [SECURITY.md](SECURITY.md), along with how to report a vulnerability.
 
 ## How it works
 
-`aisp list` builds the list. For Claude and Codex it scans the JSONL transcripts and remembers how far it read, so a changed file costs only its new bytes. For Hermes it queries `state.db`. Each keystroke in fzf re-runs it with the query, so matching happens in Python and the list stays in time order. A thread in the picker watches the stores and pokes fzf over its listen port when something changes. Live Claude sessions come from its lock files, checked against the recorded process start time on Linux so a reused pid is not mistaken for a running session.
+`duckpond list` builds the list. For Claude and Codex it scans the JSONL transcripts and remembers how far it read, so a changed file costs only its new bytes. For Hermes it queries `state.db`. Each keystroke in fzf re-runs it with the query, so matching happens in Python and the list stays in time order. A thread in the picker watches the stores and pokes fzf over its listen port when something changes. Live Claude sessions come from its lock files, checked against the recorded process start time on Linux so a reused pid is not mistaken for a running session.
 
 ## Development
 
 ```sh
-git clone https://github.com/Vizim/ai-session-picker
-cd ai-session-picker
+git clone https://github.com/Vizim/duckpond
+cd duckpond
 python -m pip install -e . pytest
 python -m pytest -q
 ```

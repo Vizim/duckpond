@@ -12,8 +12,8 @@ import time
 from pathlib import Path
 
 HOME = os.path.expanduser('~')
-CACHE = os.environ.get('AGENT_PICKER_CACHE') or os.path.join(
-    os.environ.get('XDG_CACHE_HOME', os.path.join(HOME, '.cache')), 'agent-picker')
+CACHE = os.environ.get('DUCKPOND_CACHE') or os.path.join(
+    os.environ.get('XDG_CACHE_HOME', os.path.join(HOME, '.cache')), 'duckpond')
 INDEX = os.path.join(CACHE, 'index.json')
 HIDDEN = os.path.join(CACHE, 'hidden.json')
 INDEX_VERSION = 3
@@ -600,7 +600,7 @@ def doctor():
     import platform
     from .duck import DUCK
     print(DUCK)
-    print(f"aisp on {platform.system()} {platform.release()}, python {platform.python_version()}")
+    print(f"duckpond on {platform.system()} {platform.release()}, python {platform.python_version()}")
     fzf = shutil.which('fzf')
     if fzf:
         ver = subprocess.run([fzf, '--version'], capture_output=True, text=True).stdout.split()[:1]
@@ -609,7 +609,7 @@ def doctor():
         print('fzf        MISSING, install it from https://github.com/junegunn/fzf#installation')
     print(f'cache      {CACHE}')
     from . import config
-    print(f"terminal   {config.get('terminal') or 'auto'}    (aisp config terminal \"...\" to change)")
+    print(f"terminal   {config.get('terminal') or 'auto'}    (duckpond config terminal \"...\" to change)")
     stores = [('claude', CLAUDE_HOME, os.path.join(CLAUDE_HOME, 'projects', '*', '*.jsonl')),
               ('codex', CODEX_HOME, os.path.join(CODEX_HOME, 'sessions', '*', '*', '*', '*.jsonl')),
               ('hermes', HERMES_HOME, os.path.join(HERMES_HOME, 'state.db'))]
@@ -625,16 +625,18 @@ def doctor():
     return 0 if fzf and found else 1
 
 
-USAGE = """aisp                       pick a session and resume it
-aisp --window              same, in a new terminal window
-aisp list [--json] [words]  print the session list (words filter it)
-aisp doctor                check agents, stores, fzf and the cache
-aisp config [KEY [VALUE]]  show or change settings, e.g. aisp config terminal "alacritty -e"
-aisp install-launcher      add an "AI Sessions" app with an icon to this desktop
-aisp uninstall-launcher    remove it again
-aisp preview [--full] AGENT ID
-aisp export AGENT ID FILE   write a session as markdown
-aisp hide AGENT ID | aisp unhide-all | aisp copy TEXT"""
+USAGE = """duckpond                       pick a session and resume it
+duckpond --window              same, in a new terminal window
+duckpond list [--json] [words]  print the session list (words filter it)
+duckpond doctor                check agents, stores, fzf and the cache
+duckpond pond [--once|--demo]  watch the agents that are running right now, as ducks
+duckpond config [KEY [VALUE]]  show or change settings, e.g. duckpond config terminal "alacritty -e"
+duckpond install-launcher      add an "AI Sessions" app with an icon to this desktop
+duckpond uninstall-launcher    remove it again
+duckpond preview [--full] AGENT ID
+duckpond export AGENT ID FILE   write a session as markdown
+duckpond hide AGENT ID | duckpond unhide-all | duckpond copy TEXT
+aisp is a short alias for duckpond"""
 
 
 def main(argv=None):
@@ -646,7 +648,7 @@ def main(argv=None):
     if cmd in ('hide', 'preview', 'export'):
         ids = [a for a in rest if not a.startswith('--')]
         if len(ids) < 2 or not (safe(ids[0]) and safe(ids[1])):
-            sys.exit('aisp: bad agent or session id')
+            sys.exit('duckpond: bad agent or session id')
     if cmd == 'list':
         as_json = '--json' in rest
         return list_sessions(' '.join(a for a in rest if a != '--json').lower().split(), as_json)
@@ -659,7 +661,7 @@ def main(argv=None):
         return show_preview(ids[0], ids[1], '--full' in rest)
     if cmd == 'export' and len(rest) == 3:
         if not export_markdown(rest[0], rest[1], rest[2]):
-            sys.exit('aisp: session not found')
+            sys.exit('duckpond: session not found')
         return
     if cmd == 'copy' and len(rest) == 1:
         return copy_text(rest[0])

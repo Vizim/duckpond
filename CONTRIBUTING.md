@@ -5,8 +5,8 @@ Thanks for helping. The project is small on purpose: standard library Python plu
 ## Setup
 
 ```sh
-git clone https://github.com/Vizim/ai-session-picker
-cd ai-session-picker
+git clone https://github.com/Vizim/duckpond
+cd duckpond
 python -m pip install -e . pytest
 python -m pytest -q
 ```
@@ -14,14 +14,14 @@ python -m pytest -q
 Try the picker against generated sample data instead of your real sessions:
 
 ```sh
-python tests/sample_stores.py /tmp/aisp-sample
-CLAUDE_CONFIG_DIR=/tmp/aisp-sample/claude CODEX_HOME=/tmp/aisp-sample/codex \
-HERMES_HOME=/tmp/aisp-sample/hermes AGENT_PICKER_CACHE=/tmp/aisp-sample/cache aisp
+python tests/sample_stores.py /tmp/duckpond-sample
+CLAUDE_CONFIG_DIR=/tmp/duckpond-sample/claude CODEX_HOME=/tmp/duckpond-sample/codex \
+HERMES_HOME=/tmp/duckpond-sample/hermes DUCKPOND_CACHE=/tmp/duckpond-sample/cache duckpond
 ```
 
 ## Adding an agent
 
-An agent needs three things in `agent_picker/sessions.py`:
+An agent needs three things in `duckpond/sessions.py`:
 
 1. Where its sessions live and how to turn one into the common state dict (`new_state()`): see `claude_feed` and `codex_feed` for line-based transcripts, or `collect_hermes` for a database.
 2. An entry in `AGENTS` (binary name and colour) and in `COMMANDS` in `picker.py` (how to start a new session and how to resume one).

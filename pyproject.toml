@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ai-session-picker"
+name = "duckpond"
 version = "0.3.0"
 description = "One fzf picker for Claude Code, Codex and Hermes sessions, across every project"
 readme = "README.md"
@@ -18,17 +18,18 @@ classifiers = [
 ]
 
 [project.scripts]
-aisp = "agent_picker.cli:main"
+aisp = "duckpond.cli:main"
+duckpond = "duckpond.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/Vizim/ai-session-picker"
+Homepage = "https://github.com/Vizim/duckpond"
 
 [tool.setuptools.packages.find]
-include = ["agent_picker*"]
+include = ["duckpond*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.setuptools.package-data]
-agent_picker = ["assets/*"]
+duckpond = ["assets/*"]

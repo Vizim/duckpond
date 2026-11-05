@@ -1,7 +1,7 @@
-"""The aisp command: the picker by default, otherwise an indexer subcommand."""
+"""The duckpond command: the picker by default, otherwise an indexer subcommand."""
 import sys
 
-from . import config, launcher, picker, sessions
+from . import config, launcher, picker, pond, sessions
 from .duck import DUCK
 
 USAGE = sessions.USAGE
@@ -10,7 +10,7 @@ USAGE = sessions.USAGE
 def version():
     try:
         from importlib.metadata import version as v
-        return v('ai-session-picker')
+        return v('duckpond')
     except Exception:
         return 'dev'
 
@@ -26,7 +26,7 @@ def main():
         print(USAGE)
         return
     if args[0] in ('-V', '--version'):
-        print(f'aisp {version()}')
+        print(f'duckpond {version()}')
         return
     if args == ['install-launcher']:
         print(launcher.install())
@@ -34,6 +34,8 @@ def main():
     if args == ['uninstall-launcher']:
         print(launcher.uninstall())
         return
+    if args[0] == 'pond':
+        return pond.run(args[1:])
     if args[0] == 'config':
         if len(args) == 1:
             print(config.show())
@@ -41,7 +43,7 @@ def main():
             config.set_value(args[1], args[2] if len(args) == 3 else '')
             print(config.show())
         else:
-            sys.exit('usage: aisp config [KEY [VALUE]]')
+            sys.exit('usage: duckpond config [KEY [VALUE]]')
         return
     return sessions.main(args)
 
