@@ -65,17 +65,17 @@ install_fzf() {
 
 latest_fzf() {
   # The release redirect needs no API quota; the API is the fallback, with a token when one is set.
-  ver=$(curl -fsSI -o /dev/null -w '%{redirect_url}' https://github.com/junegunn/fzf/releases/latest 2>/dev/null | sed -n 's#.*/tag/v\{0,1\}##p')
+  ver=$(curl -fsSI --max-time 20 -o /dev/null -w '%{redirect_url}' https://github.com/junegunn/fzf/releases/latest 2>/dev/null | sed -n 's#.*/tag/v\{0,1\}##p')
   if [ -z "$ver" ]; then
     auth=""; [ -n "${GITHUB_TOKEN:-}" ] && auth="Authorization: Bearer $GITHUB_TOKEN"
-    ver=$(curl -fsSL ${auth:+-H "$auth"} https://api.github.com/repos/junegunn/fzf/releases/latest 2>/dev/null | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n1)
+    ver=$(curl -fsSL --max-time 20 ${auth:+-H "$auth"} https://api.github.com/repos/junegunn/fzf/releases/latest 2>/dev/null | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n1)
   fi
   [ -n "$ver" ] && printf '%s\n' "$ver"
 }
 
 fetch() {
-  if command -v curl >/dev/null 2>&1; then curl -fsSL "$1"
-  elif command -v wget >/dev/null 2>&1; then wget -qO- "$1"
+  if command -v curl >/dev/null 2>&1; then curl -fsSL --max-time 120 "$1"
+  elif command -v wget >/dev/null 2>&1; then wget -qO- --timeout=120 "$1"
   else die "need curl or wget"; fi
 }
 
