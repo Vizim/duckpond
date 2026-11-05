@@ -3,7 +3,7 @@
 ## 0.3.0
 
 - One-line installers for Linux, macOS (`install.sh`) and Windows (`install.ps1`), with `--uninstall`, verified in CI.
-- ASCII duck in `aisp --help` and `aisp doctor`.
+- Rubber duck app icon (SVG, PNG, ICO, ICNS) and ASCII duck in `aisp --help` and `aisp doctor`.
 - `aisp config terminal "..."` picks the terminal used by `--window` and the app launcher.
 - `aisp uninstall-launcher`.
 - `aisp install-launcher` registers an "AI Sessions" app with an icon on Linux, macOS and Windows.
