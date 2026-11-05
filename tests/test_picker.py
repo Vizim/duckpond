@@ -66,7 +66,7 @@ def test_pond_frame_layout():
     from duckpond import pond
     from duckpond.duck import MID_ROWS, MINI_ROWS
     empty = pond.plain(pond.frame([], 60, 0))
-    assert any('no ducks' in line for line in empty)
+    assert any('no sessions running' in line for line in empty)
     ducks = [('claude', 'Rate limiter returns 429'), ('codex', 'redis cache'), ('hermes', 'Reconcile October')]
     beak = MINI_ROWS[0].strip('\u2800')
     for t in (0, 1):
@@ -87,8 +87,8 @@ def test_header_and_mini_duck():
     rows = ['claude\t__NEW__\t/h\t+ new claude session', 'claude\tabc\t/h\tx', 'codex\tdef\t/h\ty']
     text = re.sub(r'\x1b\[[0-9;]*m', '', picker.header(rows))
     assert 'duckpond' in text and 'all your AI sessions, one pond' in text
-    assert '2 sessions on the pond from claude, codex' in text
-    assert 'the pond is empty' in picker.header(rows[:1])
+    assert '2 sessions from claude, codex' in text
+    assert 'no sessions yet' in picker.header(rows[:1])
 
 
 def test_guide_mentions_every_key_in_the_header():
@@ -122,4 +122,4 @@ def test_doctor_ends_with_a_verdict(stores, capsys):
     with pytest.raises(SystemExit):
         s.main(['doctor'])
     out = capsys.readouterr().out
-    assert 'the pond is open' in out or 'install fzf' in out or 'no agents found' in out
+    assert 'ready' in out or 'install fzf' in out or 'no agents found' in out

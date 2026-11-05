@@ -26,7 +26,7 @@ def frame(ducks, width, t):
     # Ducks bob on alternate ticks over three rows of drifting Braille water, labels underneath.
     width = max(48, width)
     if not ducks:
-        sign = f'{DIM}no ducks on the pond right now. start an agent and come back.{RESET}'
+        sign = f'{DIM}no sessions running right now. start an agent and come back.{RESET}'
         return ['', '', ' ' * ((width - 58) // 2) + sign, '', f'{CYAN}{water(width, t)}{RESET}',
                 f'{CYAN}{water(width, t, 3)}{RESET}', f'{CYAN}{water(width, t, 6)}{RESET}', '']
     slot = max(len(MINI_ROWS[0]) + 4, width // len(ducks))
@@ -78,7 +78,7 @@ def run(args):
             width = shutil.get_terminal_size((80, 24)).columns
             lines = frame(ducks, width, t)
             n = len(ducks)
-            header = f'{BOLD}duckpond{RESET}  {DIM}{n} duck{"s" if n != 1 else ""} on the pond{RESET}'
+            header = f'{BOLD}duckpond{RESET}  {DIM}{n} session{"s" if n != 1 else ""} running{RESET}'
             if not once:
                 sys.stdout.write('\033[H\033[2J')
             sys.stdout.write('\n'.join([header] + lines) + '\n')

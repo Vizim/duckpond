@@ -624,11 +624,11 @@ def doctor():
     print(f"sessions   {len(rows)} listed, {len(load_json(HIDDEN, []))} hidden, agents installed: {', '.join(found) or 'none'}")
     print()
     if fzf and found and rows:
-        print(f"{GREEN}the pond is open.{RESET} run: duckpond")
+        print(f"{GREEN}ready.{RESET} run: duckpond")
     elif fzf and found:
-        print(f"{GREEN}the pond is open{RESET} but empty. run {' or '.join(found)} once and the session will show up here.")
+        print(f"{GREEN}ready{RESET}, no sessions yet. run {' or '.join(found)} once and it will show up here.")
     elif not fzf:
-        print('install fzf and the pond is open.')
+        print('install fzf and you are ready.')
     else:
         print('no agents found on PATH. install Claude Code, Codex or Hermes and come back.')
     return 0 if fzf and found else 1

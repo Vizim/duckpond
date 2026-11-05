@@ -23,9 +23,9 @@ def header(rows):
     real = [r for r in rows if r.split('\t')[1:2] and not r.split('\t')[1].startswith('__')]
     agents = sorted({r.split('\t')[0] for r in real})
     if real:
-        status = f'{len(real)} session{"s" if len(real) != 1 else ""} on the pond from {", ".join(agents)}'
+        status = f'{len(real)} session{"s" if len(real) != 1 else ""} from {", ".join(agents)}'
     else:
-        status = 'the pond is empty. run claude, codex or hermes once and the session will show up here'
+        status = 'no sessions yet. run claude, codex or hermes once and it will show up here'
     return mini([f'{BOLD}duckpond{RESET}  {DIM}{TAGLINE}{RESET}', KEYS1, KEYS2, f'{DIM}{status}{RESET}'])
 
 
