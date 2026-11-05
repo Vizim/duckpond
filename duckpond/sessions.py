@@ -602,12 +602,13 @@ def doctor():
     from .duck import DUCK
     print(DUCK)
     print(f"duckpond on {platform.system()} {platform.release()}, python {platform.python_version()}")
+    from . import hints
     fzf = shutil.which('fzf')
     if fzf:
         ver = subprocess.run([fzf, '--version'], capture_output=True, text=True).stdout.split()[:1]
         print(f"fzf        {fzf} {' '.join(ver)}")
     else:
-        print('fzf        MISSING, install it from https://github.com/junegunn/fzf#installation')
+        print(f'fzf        MISSING. {hints.fzf_hint()}')
     print(f'cache      {CACHE}')
     from . import config
     print(f"terminal   {config.get('terminal') or 'auto'}    (duckpond config terminal \"...\" to change)")
@@ -616,7 +617,7 @@ def doctor():
               ('hermes', HERMES_HOME, os.path.join(HERMES_HOME, 'state.db'))]
     found = installed()
     for agent, home, pattern in stores:
-        exe = shutil.which(AGENTS[agent]['bin']) or 'not on PATH'
+        exe = shutil.which(AGENTS[agent]['bin']) or f'not on PATH. {hints.agent_hint(agent).split(". ", 1)[1]}'
         n = len(glob.glob(pattern))
         store = f"{n} transcript(s)" if agent != 'hermes' else ('store present' if n else 'no store')
         print(f"{agent:<10} {exe}")
@@ -629,9 +630,9 @@ def doctor():
     elif fzf and found:
         print(f"{GREEN}ready{RESET}, no sessions yet. run {' or '.join(found)} once and it will show up here.")
     elif not fzf:
-        print('install fzf and you are ready.')
+        print(hints.fzf_hint())
     else:
-        print('no agents found on PATH. install Claude Code, Codex or Hermes and come back.')
+        print(hints.no_agents_hint())
     return 0 if fzf and found else 1
 
 

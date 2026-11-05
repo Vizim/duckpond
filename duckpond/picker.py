@@ -105,7 +105,8 @@ def watch(proc, port, key, me, me_argv, env):
 
 def pick():
     if not shutil.which('fzf'):
-        sys.exit('duckpond: fzf not found, see https://github.com/junegunn/fzf#installation')
+        from . import hints
+        sys.exit(f'duckpond: {hints.fzf_hint()}')
     me_argv, me = self_command()
     key, port = secrets.token_hex(16), free_port()
     env = dict(os.environ, FZF_API_KEY=key, DUCKPOND_CACHE=sessions.CACHE)

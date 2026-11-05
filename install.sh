@@ -14,6 +14,8 @@ DUCKPOND_BIN="${DUCKPOND_BIN:-$HOME/.local/bin}"
 VENV="$DUCKPOND_HOME/venv"
 
 say() { printf '%s\n' "$*"; }
+FZF_HELP="install fzf yourself: brew install fzf | sudo apt install fzf | sudo dnf install fzf | sudo pacman -S fzf, or https://github.com/junegunn/fzf/releases"
+PY_HELP="install Python 3.9 or newer: macOS 'brew install python' or https://www.python.org/downloads, Debian/Ubuntu 'sudo apt install python3 python3-venv', Fedora 'sudo dnf install python3', Arch 'sudo pacman -S python'"
 die() { printf 'duckpond install: %s\n' "$*" >&2; exit 1; }
 ask() {  # ask "question" -> 0 for yes; only prompts on a terminal, otherwise no
   reply=""
@@ -55,11 +57,12 @@ install_fzf() {
     say "installing fzf with Homebrew"; brew install -q fzf && return 0
   fi
   os=$(uname -s | tr '[:upper:]' '[:lower:]'); arch=$(uname -m)
-  case "$arch" in x86_64|amd64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; armv7l) arch=armv7 ;; *) die "no fzf build for $arch, install fzf yourself: https://github.com/junegunn/fzf#installation" ;; esac
-  ver=$(latest_fzf) || die "could not look up the latest fzf release, install fzf yourself: https://github.com/junegunn/fzf#installation"
+  case "$arch" in x86_64|amd64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; armv7l) arch=armv7 ;; *) die "no fzf build for $arch. $FZF_HELP" ;; esac
+  ver=$(latest_fzf) || die "could not reach github.com to fetch fzf. $FZF_HELP, then rerun this installer"
   say "installing fzf $ver into $DUCKPOND_BIN"
   tmp=$(mktemp -d); fetch "https://github.com/junegunn/fzf/releases/download/v$ver/fzf-$ver-${os}_$arch.tar.gz" >"$tmp/fzf.tgz"
-  tar -xzf "$tmp/fzf.tgz" -C "$tmp" && install -m 755 "$tmp/fzf" "$DUCKPOND_BIN/fzf" && touch "$DUCKPOND_BIN/.duckpond-installed-fzf"
+  tar -xzf "$tmp/fzf.tgz" -C "$tmp" || die "could not unpack fzf (is gzip installed?). $FZF_HELP"
+  { cp "$tmp/fzf" "$DUCKPOND_BIN/fzf" && chmod 755 "$DUCKPOND_BIN/fzf" && touch "$DUCKPOND_BIN/.duckpond-installed-fzf"; } || die "could not place fzf in $DUCKPOND_BIN. $FZF_HELP"
   rm -rf "$tmp"
 }
 
@@ -76,14 +79,14 @@ latest_fzf() {
 fetch() {
   if command -v curl >/dev/null 2>&1; then curl -fsSL --max-time 120 "$1"
   elif command -v wget >/dev/null 2>&1; then wget -qO- --timeout=120 "$1"
-  else die "need curl or wget"; fi
+  else die "need curl or wget to download. Debian/Ubuntu: sudo apt install curl, Fedora: sudo dnf install curl, Arch: sudo pacman -S curl"; fi
 }
 
-install() {
-  py=$(find_python) || die "python 3.9 or newer is required (https://www.python.org/downloads/)"
+run_install() {
+  py=$(find_python) || die "python 3.9 or newer was not found. $PY_HELP"
   mkdir -p "$DUCKPOND_HOME" "$DUCKPOND_BIN"
   say "creating virtualenv in $VENV"
-  "$py" -m venv "$VENV" 2>/dev/null || die "could not create a virtualenv; on Debian or Ubuntu run: sudo apt install python3-venv"
+  "$py" -m venv "$VENV" 2>/dev/null || die "could not create a virtualenv. Debian/Ubuntu: sudo apt install python3-venv, then rerun this installer"
   src="git+$REPO"
   here=$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)
   [ -n "$here" ] && [ -f "$here/pyproject.toml" ] && src="$here"
@@ -106,6 +109,6 @@ purge=no
 for arg in "$@"; do [ "$arg" = --purge ] && purge=yes; done
 case "${1:-}" in
   --uninstall|uninstall) uninstall ;;
-  "") install ;;
+  "") run_install ;;
   *) die "usage: install.sh [--uninstall [--purge]]" ;;
 esac

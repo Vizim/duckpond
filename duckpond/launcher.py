@@ -13,7 +13,7 @@ HOME = os.path.expanduser('~')
 def find_exe():
     exe = shutil.which('duckpond') or shutil.which('aisp')
     if not exe:
-        sys.exit('duckpond: install the package first so the duckpond command is on PATH')
+        sys.exit('duckpond: the duckpond command is not on PATH. run the installer, or add the folder that holds it (pipx: ~/.local/bin) to PATH')
     return os.path.abspath(exe)
 
 

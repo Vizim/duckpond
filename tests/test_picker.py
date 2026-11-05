@@ -133,3 +133,13 @@ def test_watch_signature_ignores_the_clock():
     assert picker.signature(a) == picker.signature(b)
     assert picker.signature(a) != picker.signature(c)
     assert picker.signature(a) != picker.signature(d)
+
+
+def test_hints_name_a_way_to_install(monkeypatch):
+    from duckpond import hints
+    monkeypatch.setattr(hints.shutil, 'which', lambda n: '/usr/bin/apt' if n == 'apt' else None)
+    assert hints.fzf_hint() == 'fzf is missing. install it with: sudo apt install fzf'
+    monkeypatch.setattr(hints.shutil, 'which', lambda n: None)
+    assert 'github.com/junegunn/fzf/releases' in hints.fzf_hint()
+    assert 'npm install -g @openai/codex' in hints.agent_hint('codex')
+    assert 'Claude Code' in hints.no_agents_hint() and 'Hermes' in hints.no_agents_hint()
