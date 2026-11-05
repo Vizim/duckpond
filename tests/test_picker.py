@@ -123,3 +123,13 @@ def test_doctor_ends_with_a_verdict(stores, capsys):
         s.main(['doctor'])
     out = capsys.readouterr().out
     assert 'ready' in out or 'install fzf' in out or 'no agents found' in out
+
+
+def test_watch_signature_ignores_the_clock():
+    a = ['claude\tabc\t/h\t\x1b[32m●\x1b[0m \x1b[2m11-05 15:03\x1b[0m  claude  proj  Title']
+    b = ['claude\tabc\t/h\t\x1b[32m●\x1b[0m \x1b[2m11-05 15:09\x1b[0m  claude  proj  Title']
+    c = ['claude\tabc\t/h\t  \x1b[2m11-05 15:09\x1b[0m  claude  proj  Title']
+    d = ['claude\tabc\t/h\t\x1b[32m●\x1b[0m \x1b[2m11-05 15:09\x1b[0m  claude  proj  Renamed']
+    assert picker.signature(a) == picker.signature(b)
+    assert picker.signature(a) != picker.signature(c)
+    assert picker.signature(a) != picker.signature(d)

@@ -71,24 +71,32 @@ def free_port():
         return s.getsockname()[1]
 
 
-def snapshot():
+ANSI = re.compile(r'\x1b\[[0-9;]*m')
+
+
+def signature(rows):
+    # What the list looks like, minus the clock: a reload is only worth the blink when this changes.
     out = []
-    for p in sessions.watched_files():
-        try:
-            st = os.stat(p)
-            out.append((p, st.st_mtime, st.st_size))
-        except OSError:
-            pass
+    for row in rows:
+        parts = row.split('\t')
+        if len(parts) < 4:
+            continue
+        label = ANSI.sub('', parts[3])
+        out.append((parts[0], parts[1], parts[2], label[:1], label[13:]))
     return tuple(out)
 
 
-def watch(proc, port, key, idx):
-    # Push a reload to fzf whenever a session store changes, while fzf lives.
+def watch(proc, port, key, me, me_argv, env):
+    # Re-list every two seconds and push a reload to fzf only when rows, titles, order or live marks change.
     seen = None
     while proc.poll() is None:
-        now = snapshot()
+        try:
+            rows = subprocess.run(me_argv + ['list'], capture_output=True, env=env, timeout=30).stdout
+        except (OSError, subprocess.SubprocessError):
+            rows = b''
+        now = signature(rows.decode('utf-8', 'replace').splitlines())
         if seen is not None and now != seen:
-            req = urllib.request.Request(f'http://127.0.0.1:{port}', data=f'reload({idx} {{q}})'.encode(),
+            req = urllib.request.Request(f'http://127.0.0.1:{port}', data=f'reload({me} list {{q}})'.encode(),
                                          headers={'x-api-key': key}, method='POST')
             try:
                 urllib.request.urlopen(req, timeout=2).close()
@@ -121,7 +129,7 @@ def pick():
            f'--header={head}', f'--preview={me} preview {{1}} {{2}}',
            '--preview-window=right,50%,wrap,<110(down,45%,wrap)']
     proc = subprocess.Popen(fzf, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
-    threading.Thread(target=watch, args=(proc, port, key, me), daemon=True).start()
+    threading.Thread(target=watch, args=(proc, port, key, me, me_argv, env), daemon=True).start()
     out, _ = proc.communicate(initial)
     lines = out.decode('utf-8', 'replace').splitlines()
     if len(lines) < 2 or not lines[1].strip():
