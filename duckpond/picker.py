@@ -22,13 +22,11 @@ def header(rows):
         status = f'{len(real)} session{"s" if len(real) != 1 else ""} from {", ".join(agents)}'
     else:
         status = 'no sessions yet. run claude, codex or hermes once and it will show up here'
-    return mini([f'{BOLD}duckpond{RESET}  {DIM}{TAGLINE}{RESET}', f'{DIM}{status}{RESET}', '',
-                 f'Have a question? Hit {BOLD}F1{RESET} for the help menu.'])
+    return mini([f'{BOLD}duckpond{RESET}  {TAGLINE}', status, '', f'Have a question? Hit {BOLD}?{RESET} for the help menu.'])
 
 
-# fzf colours: pond green for the frame and pointer, agent colours stay inside the rows.
-THEME = 'fg:#d4d4d8,bg:-1,hl:#22c55e,fg+:#fafafa,bg+:#1f1f28,hl+:#86efac,prompt:#22c55e,pointer:#22c55e,'\
-        'header:#71717a,info:#71717a,border:#3f3f46,label:#22c55e,preview-border:#3f3f46'
+# fzf colours: the terminal's own colours, with pond green for the accents.
+THEME = 'hl:#22c55e,hl+:#86efac,prompt:#22c55e,pointer:#22c55e,label:#22c55e,marker:#22c55e'
 
 # Fork and cloud sessions exist only for claude; other agents fall back to resume or new.
 COMMANDS = {
@@ -123,7 +121,7 @@ def pick():
            f'--bind=ctrl-y:execute-silent({me} copy {{2}})',
            f'--bind=ctrl-p:change-preview({me} preview --full {{1}} {{2}})',
            f'--bind=focus:change-preview({me} preview {{1}} {{2}})',
-           f'--bind=f1:change-preview({me} help)',
+           f'--bind=?:execute({me} help --wait)', f'--bind=f1:execute({me} help --wait)',
            f'--header={head}', f'--preview={me} preview {{1}} {{2}}',
            '--preview-window=right,50%,wrap,<110(down,45%,wrap)']
     proc = subprocess.Popen(fzf, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)

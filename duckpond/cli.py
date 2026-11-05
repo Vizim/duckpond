@@ -23,6 +23,11 @@ def main():
         return picker.open_window()
     if args[0] == 'help':
         print(guide.guide())
+        if '--wait' in args:
+            try:
+                input('\npress Enter to go back ')
+            except (EOFError, KeyboardInterrupt):
+                pass
         return
     if args[0] in ('-h', '--help'):
         print(DUCK)

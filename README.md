@@ -50,7 +50,7 @@ The whole point is that it costs almost nothing to have around.
 | Ctrl-U | Unhide everything |
 | Ctrl-Y | Copy the session id |
 | Ctrl-R | Refresh |
-| F1 | The guide, inside the picker |
+| ? | The guide, inside the picker (F1 works too) |
 
 `duckpond help` prints the same guide in the terminal. Don't feel like typing `duckpond`? `aisp` does exactly the same thing. Outside the picker: `duckpond pond` shows the agents running right now as ducks on a pond, `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup.
 

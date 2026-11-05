@@ -13,7 +13,7 @@ KEYS = [
     ('Ctrl-U', 'unhide everything'),
     ('Ctrl-Y', 'copy the session id'),
     ('Ctrl-R', 'refresh the list'),
-    ('F1', 'this guide'),
+    ('?', 'this guide (F1 works too); Enter brings you back'),
     ('Esc', 'leave without doing anything'),
 ]
 
