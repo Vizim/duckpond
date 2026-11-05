@@ -2,7 +2,7 @@
 # duckpond installer for Linux and macOS.
 #
 #   curl -fsSL https://raw.githubusercontent.com/Vizim/duckpond/main/install.sh | sh
-#   sh install.sh --uninstall
+#   sh install.sh --uninstall [--purge]   (--purge also removes the cache without asking)
 #
 # Installs into a private virtualenv under $DUCKPOND_HOME (default ~/.local/share/duckpond), links duckpond into
 # $DUCKPOND_BIN (default ~/.local/bin), fetches fzf there if missing, and registers the app launcher.
@@ -15,12 +15,10 @@ VENV="$DUCKPOND_HOME/venv"
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'duckpond install: %s\n' "$*" >&2; exit 1; }
-ask() {  # ask "question" -> 0 for yes; defaults to no when there is no terminal
+ask() {  # ask "question" -> 0 for yes; only prompts on a terminal, otherwise no
   reply=""
   if [ -t 0 ]; then
     printf '%s [y/N] ' "$1"; read -r reply || reply=""
-  elif { exec 3</dev/tty; } 2>/dev/null; then
-    printf '%s [y/N] ' "$1"; read -r reply <&3 || reply=""; exec 3<&-
   fi
   case "$reply" in y|Y|yes) return 0 ;; *) return 1 ;; esac
 }
@@ -31,8 +29,14 @@ uninstall() {
   [ -L "$DUCKPOND_BIN/duckpond" ] && rm -f "$DUCKPOND_BIN/duckpond"
   [ -L "$DUCKPOND_BIN/aisp" ] && rm -f "$DUCKPOND_BIN/aisp"
   [ -f "$DUCKPOND_BIN/.duckpond-installed-fzf" ] && rm -f "$DUCKPOND_BIN/fzf" "$DUCKPOND_BIN/.duckpond-installed-fzf"
-  cache="${DUCKPOND_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/agent-picker}"
-  if [ -d "$cache" ] && ask "also remove the cache with session previews at $cache?"; then rm -rf "$cache"; fi
+  cache="${DUCKPOND_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/duckpond}"
+  if [ -d "$cache" ]; then
+    if [ "$purge" = yes ] || ask "also remove the cache with session previews at $cache?"; then
+      rm -rf "$cache"; say "cache removed"
+    else
+      say "cache kept at $cache (pass --purge to remove it)"
+    fi
+  fi
   say "duckpond removed"
 }
 
@@ -98,8 +102,10 @@ install() {
   say "done. run: duckpond"
 }
 
+purge=no
+for arg in "$@"; do [ "$arg" = --purge ] && purge=yes; done
 case "${1:-}" in
   --uninstall|uninstall) uninstall ;;
   "") install ;;
-  *) die "usage: install.sh [--uninstall]" ;;
+  *) die "usage: install.sh [--uninstall [--purge]]" ;;
 esac

@@ -84,10 +84,10 @@ duckpond doctor     # check agents, stores, fzf and the cache
 
 ![duckpond doctor output](docs/doctor.svg)
 
-Remove it just as easily. This takes the virtualenv, the command, the launcher and, if you say yes, the cache with it:
+Remove it just as easily. This takes the virtualenv, the command and the launcher. The cache with your session previews stays unless you answer yes at the prompt or add `--purge`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Vizim/duckpond/main/install.sh | sh -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/Vizim/duckpond/main/install.sh | sh -s -- --uninstall --purge
 ```
 
 ```powershell
