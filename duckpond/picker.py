@@ -109,7 +109,7 @@ def pick():
     initial = subprocess.run(me_argv + ['list'], capture_output=True, env=env).stdout
     head = header(initial.decode('utf-8', 'replace').splitlines())
     fzf = ['fzf', '--delimiter=\t', '--with-nth=4', '--ansi', '--reverse', '--height=100%', '--disabled',
-           '--prompt=pond › ', '--pointer=▶', '--border=rounded', '--border-label= duckpond ', '--border-label-pos=3',
+           '--prompt=sessions › ', '--pointer=▶', '--border=rounded', '--border-label= duckpond ', '--border-label-pos=3',
            f'--color={THEME}', '--expect=ctrl-n,ctrl-t,ctrl-f,ctrl-o', f'--listen=127.0.0.1:{port}', '--track',
            f'--bind=change:reload({me} list {{q}})', f'--bind=ctrl-r:reload({me} list {{q}})',
            f'--bind=ctrl-x:execute-silent({me} hide {{1}} {{2}})+reload({me} list {{q}})',
