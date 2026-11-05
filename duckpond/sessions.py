@@ -649,7 +649,7 @@ duckpond uninstall-skills      remove those skill files
 duckpond preview [--full] AGENT ID
 duckpond export AGENT ID FILE   write a session as markdown
 duckpond hide AGENT ID | duckpond unhide-all | duckpond copy TEXT
-aisp is a short alias for duckpond"""
+don't feel like typing duckpond? aisp does exactly the same thing"""
 
 
 def main(argv=None):

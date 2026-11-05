@@ -42,7 +42,7 @@ Watch the agents that are running right now with `duckpond pond`:
 | Ctrl-R | Refresh |
 | F1 | The guide, inside the picker |
 
-`duckpond help` prints the same guide in the terminal. Outside the picker: `duckpond pond` shows the agents running right now as ducks on a pond, `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup. `aisp` (AI session picker) is a short alias for `duckpond`.
+`duckpond help` prints the same guide in the terminal. Don't feel like typing `duckpond`? `aisp` does exactly the same thing. Outside the picker: `duckpond pond` shows the agents running right now as ducks on a pond, `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup.
 
 Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 
@@ -173,10 +173,6 @@ python -m pytest -q
 ```
 
 Tests run against generated sample stores, never your real sessions, and CI runs them on Linux, macOS and Windows. `python tests/sample_stores.py DIR` builds the same sample set to try the picker on; see CONTRIBUTING.md.
-
-## Similar tools
-
-[Agent Sessions](https://github.com/jazzyalex/agent-sessions) is a native macOS app that browses and resumes sessions from many agents with full transcript search. [agent-sessions](https://github.com/vineethkrishnan/agent-sessions) is a Node TUI for Claude Code, Cursor, Gemini CLI, Codex and Windsurf. [agent-session](https://github.com/anaknegeri/agent-session) keeps a separate project notebook that agents hand to each other. This project differs in being one stdlib Python command for Linux, macOS and Windows, covering Hermes, refreshing live, and handing off from the agents' own transcripts.
 
 ## License and trademarks
 

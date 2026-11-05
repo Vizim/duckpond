@@ -35,7 +35,7 @@ def table(rows, width):
 
 
 def guide(color=True):
-    out = [mini([f'{BOLD}duckpond{RESET}', TAGLINE, '', f'{DIM}aisp is a short alias for duckpond{RESET}']), '',
+    out = [mini([f'{BOLD}duckpond{RESET}', TAGLINE, '', f'{DIM}don\'t feel like typing duckpond? aisp does exactly the same thing{RESET}']), '',
            f'{BOLD}What you are looking at{RESET}',
            '  Every session from Claude Code, Codex and Hermes on this machine, newest first.',
            '  The preview shows where it ran, what you asked and the last reply.',
