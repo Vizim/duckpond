@@ -13,10 +13,8 @@ import urllib.request
 
 from . import sessions
 
-USAGE = """agent-picker            run the picker in this terminal
-agent-picker --window   open the picker in a new terminal window"""
-
-HEADER = 'Enter resume | C-F fork | C-O hand off to another agent | C-N new here | C-T cloud here | C-X hide | C-U unhide all | C-Y copy id | C-R refresh'
+HEADER = ('Enter resume | C-F fork | C-O hand off | C-N new here | C-T cloud here | C-P full transcript | '
+          'C-X hide | C-U unhide all | C-Y copy id | C-R refresh')
 
 # Fork and cloud sessions exist only for claude; other agents fall back to resume or new.
 COMMANDS = {
@@ -27,12 +25,27 @@ COMMANDS = {
 }
 
 
-def indexer():
-    # Returns the argv list and the same command as a string for fzf bindings.
-    exe = shutil.which('agent-sessions')
+def self_command():
+    # Returns argv for this program and the same command as a string for fzf bindings.
+    exe = shutil.which('aisp')
     if exe:
-        return ['agent-sessions'], 'agent-sessions'
-    return [sys.executable, '-m', 'agent_picker.sessions'], f'"{sys.executable}" -m agent_picker.sessions'
+        return [exe], 'aisp'
+    return [sys.executable, '-m', 'agent_picker.cli'], f'"{sys.executable}" -m agent_picker.cli'
+
+
+def decide(pressed, agent, sid):
+    # Maps the fzf key and row to an action; cloud and fork exist only for claude.
+    if pressed == 'ctrl-n' or sid == '__NEW__' or (pressed == 'ctrl-f' and sid.startswith('__')):
+        return 'new'
+    if pressed == 'ctrl-t':
+        return 'cloud' if agent == 'claude' else 'new'
+    if sid == '__CLOUD__':
+        return 'cloud-link'
+    if pressed == 'ctrl-f':
+        return 'fork' if agent == 'claude' else 'resume'
+    if pressed == 'ctrl-o' and not sid.startswith('__'):
+        return 'handoff'
+    return 'resume'
 
 
 def free_port():
@@ -70,23 +83,25 @@ def watch(proc, port, key, idx):
 
 def pick():
     if not shutil.which('fzf'):
-        sys.exit('agent-picker: fzf not found, see https://github.com/junegunn/fzf#installation')
-    idx_argv, idx = indexer()
+        sys.exit('aisp: fzf not found, see https://github.com/junegunn/fzf#installation')
+    me_argv, me = self_command()
     key, port = secrets.token_hex(16), free_port()
     env = dict(os.environ, FZF_API_KEY=key, AGENT_PICKER_CACHE=sessions.CACHE)
     pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env['PYTHONPATH'] = pkg_root + os.pathsep + env.get('PYTHONPATH', '')
-    initial = subprocess.run(idx_argv, capture_output=True, env=env).stdout
+    initial = subprocess.run(me_argv + ['list'], capture_output=True, env=env).stdout
     fzf = ['fzf', '--delimiter=\t', '--with-nth=4', '--ansi', '--reverse', '--height=100%', '--disabled',
            '--prompt=sessions > ', '--expect=ctrl-n,ctrl-t,ctrl-f,ctrl-o', f'--listen=127.0.0.1:{port}', '--track',
-           f'--bind=change:reload({idx} {{q}})', f'--bind=ctrl-r:reload({idx} {{q}})',
-           f'--bind=ctrl-x:execute-silent({idx} --hide {{1}} {{2}})+reload({idx} {{q}})',
-           f'--bind=ctrl-u:execute-silent({idx} --unhide-all)+reload({idx} {{q}})',
-           f'--bind=ctrl-y:execute-silent({idx} --copy {{2}})',
-           f'--header={HEADER}', f'--preview={idx} --preview {{1}} {{2}}',
+           f'--bind=change:reload({me} list {{q}})', f'--bind=ctrl-r:reload({me} list {{q}})',
+           f'--bind=ctrl-x:execute-silent({me} hide {{1}} {{2}})+reload({me} list {{q}})',
+           f'--bind=ctrl-u:execute-silent({me} unhide-all)+reload({me} list {{q}})',
+           f'--bind=ctrl-y:execute-silent({me} copy {{2}})',
+           f'--bind=ctrl-p:change-preview({me} preview --full {{1}} {{2}})',
+           f'--bind=focus:change-preview({me} preview {{1}} {{2}})',
+           f'--header={HEADER}', f'--preview={me} preview {{1}} {{2}}',
            '--preview-window=right,50%,wrap,<110(down,45%,wrap)']
     proc = subprocess.Popen(fzf, stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
-    threading.Thread(target=watch, args=(proc, port, key, idx), daemon=True).start()
+    threading.Thread(target=watch, args=(proc, port, key, me), daemon=True).start()
     out, _ = proc.communicate(initial)
     lines = out.decode('utf-8', 'replace').splitlines()
     if len(lines) < 2 or not lines[1].strip():
@@ -98,34 +113,29 @@ def pick():
     except OSError:
         os.chdir(os.path.expanduser('~'))
     spec = COMMANDS.get(agent, COMMANDS['claude'])
-    if pressed == 'ctrl-n' or sid == '__NEW__' or (pressed == 'ctrl-f' and sid.startswith('__')):
-        cmd = spec['new']
-    elif pressed == 'ctrl-t':
-        cmd = spec.get('cloud') or spec['new']
-    elif sid == '__CLOUD__':
+    action = decide(pressed, agent, sid)
+    if action == 'cloud-link':
         cmd = cloud_by_link()
-    elif pressed == 'ctrl-f':
-        cmd = spec.get('fork') or spec['resume']
-    elif pressed == 'ctrl-o' and not sid.startswith('__'):
-        cmd = handoff(agent, sid, idx_argv, env)
+    elif action == 'handoff':
+        cmd = handoff(agent, sid, me_argv, env)
     else:
-        cmd = spec['resume']
+        cmd = spec[action]
     launch([c.replace('{sid}', sid) for c in cmd])
 
 
-def handoff(agent, sid, idx_argv, env):
+def handoff(agent, sid, me_argv, env):
     # Export the conversation to a private file and open another agent on it in the same directory.
     targets = [a for a in sessions.installed() if a != agent]
     if not targets:
-        sys.exit('agent-picker: no other agent installed')
+        sys.exit('aisp: no other agent installed')
     menu = subprocess.run(['fzf', '--reverse', '--height=100%', '--prompt=hand off to > ', '--no-info'],
                           input='\n'.join(targets).encode(), stdout=subprocess.PIPE)
     target = menu.stdout.decode().strip()
     if target not in targets:
         sys.exit(0)
     out = os.path.join(sessions.CACHE, f'handoff-{agent}-{sid}.md')
-    if subprocess.run(idx_argv + ['--export', agent, sid, out], env=env).returncode != 0:
-        sys.exit('agent-picker: export failed')
+    if subprocess.run(me_argv + ['export', agent, sid, out], env=env).returncode != 0:
+        sys.exit('aisp: export failed')
     prompt = (f'You are taking over from a {agent} session. Read {out} for the full conversation so far, '
               f'then continue from where it left off.')
     if target == 'hermes':
@@ -146,19 +156,14 @@ def cloud_by_link():
 def launch(cmd):
     exe = shutil.which(cmd[0])
     if not exe:
-        sys.exit(f'agent-picker: {cmd[0]} not found')
+        sys.exit(f'aisp: {cmd[0]} not found')
     if sys.platform == 'win32':
         sys.exit(subprocess.call([exe] + cmd[1:]))
     os.execv(exe, cmd)
 
 
-def self_argv():
-    exe = shutil.which('agent-picker')
-    return [exe] if exe else [sys.executable, '-m', 'agent_picker.picker']
-
-
 def open_window():
-    me = self_argv()
+    me = self_command()[0]
     custom = os.environ.get('AGENT_PICKER_TERMINAL')
     if custom:
         argv = shlex.split(custom) + me
@@ -176,7 +181,7 @@ def open_window():
                 argv = [name] + flag + me
                 break
         if not argv:
-            sys.exit('agent-picker: no terminal found, set AGENT_PICKER_TERMINAL')
+            sys.exit('aisp: no terminal found, set AGENT_PICKER_TERMINAL')
     kwargs = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if sys.platform != 'win32':
         kwargs['start_new_session'] = True
@@ -185,15 +190,7 @@ def open_window():
 
 def main():
     os.umask(0o077)
-    args = sys.argv[1:]
-    if not args:
-        pick()
-    elif args == ['--window']:
-        open_window()
-    elif args in (['-h'], ['--help']):
-        print(USAGE)
-    else:
-        sys.exit(f'usage: {USAGE}')
+    pick()
 
 
 if __name__ == '__main__':

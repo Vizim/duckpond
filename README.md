@@ -4,7 +4,7 @@ One picker for every coding-agent session on your machine: [Claude Code](https:/
 
 Each agent's own resume command only shows the sessions for the folder you launched it from, and each has its own list. This picker reads all of them, gives every session a title and a preview of what you asked and what the agent last said, and resumes the one you pick in the right directory with the right agent. It can also hand a conversation from one agent to another.
 
-![agent-picker showing Claude, Codex and Hermes sessions with a preview pane](docs/picker.svg)
+![aisp showing Claude, Codex and Hermes sessions with a preview pane](docs/picker.svg)
 
 *Screenshot rendered from generated sample data.*
 
@@ -23,6 +23,7 @@ Each agent's own resume command only shows the sessions for the folder you launc
 | Enter | Resume the session with its agent |
 | Ctrl-O | Hand off to another agent (pick the target, it opens with the conversation as context) |
 | Ctrl-F | Resume as a fork with a new session id (Claude; others resume) |
+| Ctrl-P | Show the full transcript in the preview pane |
 | Ctrl-N | New session of that row's agent in that row's directory |
 | Ctrl-T | List cloud sessions for that row's directory (`claude --teleport`) |
 | Ctrl-X | Hide the row |
@@ -43,13 +44,14 @@ pipx install git+https://github.com/Vizim/ai-session-picker
 or, from a clone, `pip install .` or `pipx install .`. Then:
 
 ```sh
-agent-picker            # in the current terminal
-agent-picker --window   # in a new terminal window
+aisp            # in the current terminal
+aisp --window   # in a new terminal window
+aisp doctor     # check agents, stores, fzf and the cache
 ```
 
-`--window` uses the first terminal it finds on Linux (kitty, alacritty, foot, wezterm, gnome-terminal, konsole, xfce4-terminal, xterm), Terminal.app on macOS and Windows Terminal or cmd on Windows. `packaging/agent-picker.desktop` is a launcher entry for Linux desktops.
+`--window` uses the first terminal it finds on Linux (kitty, alacritty, foot, wezterm, gnome-terminal, konsole, xfce4-terminal, xterm), Terminal.app on macOS and Windows Terminal or cmd on Windows. `packaging/aisp.desktop` is a launcher entry for Linux desktops.
 
-Without installing, run it from a clone with `python -m agent_picker.picker`.
+Without installing, run it from a clone with `python -m agent_picker.cli`.
 
 ## Configuration
 
@@ -60,6 +62,10 @@ Without installing, run it from a clone with `python -m agent_picker.picker`.
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Where Claude Code keeps its transcripts |
 | `CODEX_HOME` | `~/.codex` | Where Codex keeps its rollouts |
 | `HERMES_HOME` | `~/.hermes` | Where Hermes keeps its SQLite store |
+
+## Scripting
+
+`aisp list --json` prints every session as JSON (agent, id, directory, project, branch, title, last activity, prompt count, cost, first prompt, last reply), newest first. `aisp list codex rocket` applies the same search the picker does. `aisp export AGENT ID FILE` writes one conversation as markdown.
 
 ## Handing off between agents
 
@@ -76,17 +82,22 @@ Everything stays on your machine.
 
 ## How it works
 
-`agent-sessions` builds the list. For Claude and Codex it scans the JSONL transcripts and remembers how far it read, so a changed file costs only its new bytes. For Hermes it queries `state.db`. Each keystroke in fzf re-runs it with the query, so matching happens in Python and the list stays in time order. A thread in `agent-picker` watches the stores and pokes fzf over its listen port when something changes. Live Claude sessions come from its lock files, checked against the recorded process start time on Linux so a reused pid is not mistaken for a running session.
+`aisp list` builds the list. For Claude and Codex it scans the JSONL transcripts and remembers how far it read, so a changed file costs only its new bytes. For Hermes it queries `state.db`. Each keystroke in fzf re-runs it with the query, so matching happens in Python and the list stays in time order. A thread in the picker watches the stores and pokes fzf over its listen port when something changes. Live Claude sessions come from its lock files, checked against the recorded process start time on Linux so a reused pid is not mistaken for a running session.
 
 ## Development
 
 ```sh
 git clone https://github.com/Vizim/ai-session-picker
 cd ai-session-picker
-python -m agent_picker.picker
+python -m pip install -e . pytest
+python -m pytest -q
 ```
 
-Point the `*_HOME` variables above at a directory of sample stores to try it without your real sessions.
+Tests run against generated sample stores, never your real sessions, and CI runs them on Linux, macOS and Windows. `python tests/sample_stores.py DIR` builds the same sample set to try the picker on; see CONTRIBUTING.md.
+
+## Similar tools
+
+[Agent Sessions](https://github.com/jazzyalex/agent-sessions) is a native macOS app that browses and resumes sessions from many agents with full transcript search. [agent-sessions](https://github.com/vineethkrishnan/agent-sessions) is a Node TUI for Claude Code, Cursor, Gemini CLI, Codex and Windsurf. [agent-session](https://github.com/anaknegeri/agent-session) keeps a separate project notebook that agents hand to each other. This project differs in being one stdlib Python command for Linux, macOS and Windows, covering Hermes, refreshing live, and handing off from the agents' own transcripts.
 
 ## License and trademarks
 

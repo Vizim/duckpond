@@ -9,6 +9,7 @@ import sqlite3
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 HOME = os.path.expanduser('~')
 CACHE = os.environ.get('AGENT_PICKER_CACHE') or os.path.join(
@@ -252,7 +253,7 @@ def collect_hermes(old, new):
     if not os.path.exists(db):
         return
     try:
-        con = sqlite3.connect(f'file:{db}?mode=ro', uri=True)
+        con = sqlite3.connect(Path(db).as_uri() + '?mode=ro', uri=True)
         rows = con.execute(
             "select id, cwd, git_branch, title, title_source, started_at, ended_at, last_activity_at,"
             " message_count, estimated_cost_usd from sessions where coalesce(archived, 0) = 0").fetchall()
@@ -472,7 +473,7 @@ def codex_turns(path):
 
 
 def hermes_turns(sid):
-    con = sqlite3.connect(f"file:{os.path.join(HERMES_HOME, 'state.db')}?mode=ro", uri=True)
+    con = sqlite3.connect(Path(os.path.join(HERMES_HOME, 'state.db')).as_uri() + '?mode=ro', uri=True)
     rows = con.execute("select role, content from messages where session_id = ? and role in ('user', 'assistant')"
                        " and coalesce(content, '') != '' and coalesce(active, 1) = 1 order by id", (sid,)).fetchall()
     con.close()
@@ -521,38 +522,7 @@ def watched_files():
     return paths
 
 
-def main():
-    os.umask(0o077)
-    if hasattr(sys.stdout, 'reconfigure'):
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    args = sys.argv[1:]
-    if len(args) >= 3 and args[0] in ('--hide', '--preview', '--export') and not (safe(args[1]) and safe(args[2])):
-        sys.exit('agent-sessions: bad agent or session id')
-    if args[:1] == ['--hide'] and len(args) == 3:
-        save_json(HIDDEN, sorted(set(load_json(HIDDEN, [])) | {f'{args[1]}:{args[2]}'}))
-        return
-    if args == ['--unhide-all']:
-        save_json(HIDDEN, [])
-        return
-    if args[:1] == ['--preview'] and len(args) == 3:
-        try:
-            with open(os.path.join(CACHE, f'{args[1]}-{args[2]}.txt'), encoding='utf-8') as fh:
-                sys.stdout.write(fh.read())
-        except OSError:
-            pass
-        return
-    if args[:1] == ['--export'] and len(args) == 4:
-        if not export_markdown(args[1], args[2], args[3]):
-            sys.exit('agent-sessions: session not found')
-        return
-    if args[:1] == ['--copy'] and len(args) == 2:
-        copy_text(args[1])
-        return
-    # Every keystroke in the picker re-runs this with the query; all terms must appear.
-    terms = ' '.join(args).lower().split()
-    live = live_claude()
-    hidden = set(load_json(HIDDEN, []))
-    agents = installed()
+def session_rows(terms, live, hidden):
     rows, known = [], set()
     for ent in collect().values():
         agent, sid, d = ent['agent'], ent['sid'], ent['data']
@@ -573,7 +543,20 @@ def main():
             continue
         rows.append((ent['mtime'], agent, sid, where, d, status))
     rows.sort(key=lambda r: r[0], reverse=True)
+    return rows, known
 
+
+def list_sessions(terms, as_json=False):
+    live = live_claude()
+    hidden = set(load_json(HIDDEN, []))
+    agents = installed()
+    rows, known = session_rows(terms, live, hidden)
+    if as_json:
+        print(json.dumps([dict(agent=a, id=sid, dir=where, project=d['root'], branch=d['branch'], title=title(d),
+                               last_active=time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(m)), prompts=d['turns'],
+                               cost_usd=d['cost'], open=bool(st), first_prompt=d['prompts'][0] if d['prompts'] else None,
+                               last_reply=d['reply']) for m, a, sid, where, d, st in rows], indent=2))
+        return
     for agent in agents:
         known.add(f'{agent}-__NEW__')
         write_cached(f'{agent}-__NEW__', f"{BOLD}New {agent} session{RESET}\n\nStarts {agent} in {HOME}.\n"
@@ -587,10 +570,9 @@ def main():
                      f"pulled down into a local session (claude --teleport).\n\n"
                      f"Ctrl-T on a claude row lists the cloud sessions for that row's directory instead.\n")
         if not terms:
-            print(f"claude\t__CLOUD__\t{HOME}\t☁ resume a claude.ai/code session by link")
+            print(f"claude\t__CLOUD__\t{HOME}\t\u2601 resume a claude.ai/code session by link")
     if not terms:
         prune_previews(known)
-
     for mtime, agent, sid, where, d, status in rows:
         write_cached(f'{agent}-{sid}', preview(agent, sid, d, where, mtime, status))
         proj = os.path.basename(where.rstrip('/')) or where
@@ -598,6 +580,85 @@ def main():
         when = time.strftime('%m-%d %H:%M', time.localtime(mtime))
         color = AGENTS[agent]['color']
         print(f"{agent}\t{sid}\t{where}\t{mark} {DIM}{when}{RESET}  {color}{agent:<6}{RESET}  {proj:<18.18}  {one_line(title(d), 80)}")
+
+
+def show_preview(agent, sid, full):
+    if full:
+        out = os.path.join(CACHE, f'full-{agent}-{sid}.md')
+        if export_markdown(agent, sid, out):
+            with open(out, encoding='utf-8') as fh:
+                sys.stdout.write(fh.read())
+        return
+    try:
+        with open(os.path.join(CACHE, f'{agent}-{sid}.txt'), encoding='utf-8') as fh:
+            sys.stdout.write(fh.read())
+    except OSError:
+        pass
+
+
+def doctor():
+    import platform
+    print(f"aisp on {platform.system()} {platform.release()}, python {platform.python_version()}")
+    fzf = shutil.which('fzf')
+    if fzf:
+        ver = subprocess.run([fzf, '--version'], capture_output=True, text=True).stdout.split()[:1]
+        print(f"fzf        {fzf} {' '.join(ver)}")
+    else:
+        print('fzf        MISSING, install it from https://github.com/junegunn/fzf#installation')
+    print(f'cache      {CACHE}')
+    stores = [('claude', CLAUDE_HOME, os.path.join(CLAUDE_HOME, 'projects', '*', '*.jsonl')),
+              ('codex', CODEX_HOME, os.path.join(CODEX_HOME, 'sessions', '*', '*', '*', '*.jsonl')),
+              ('hermes', HERMES_HOME, os.path.join(HERMES_HOME, 'state.db'))]
+    found = installed()
+    for agent, home, pattern in stores:
+        exe = shutil.which(AGENTS[agent]['bin']) or 'not on PATH'
+        n = len(glob.glob(pattern))
+        store = f"{n} transcript(s)" if agent != 'hermes' else ('store present' if n else 'no store')
+        print(f"{agent:<10} {exe}")
+        print(f"{'':<10} {home}: {store}")
+    rows, _ = session_rows([], live_claude(), set(load_json(HIDDEN, [])))
+    print(f"sessions   {len(rows)} listed, {len(load_json(HIDDEN, []))} hidden, agents installed: {', '.join(found) or 'none'}")
+    return 0 if fzf and found else 1
+
+
+USAGE = """aisp                       pick a session and resume it
+aisp --window              same, in a new terminal window
+aisp list [--json] [words]  print the session list (words filter it)
+aisp doctor                check agents, stores, fzf and the cache
+aisp preview [--full] AGENT ID
+aisp export AGENT ID FILE   write a session as markdown
+aisp hide AGENT ID | aisp unhide-all | aisp copy TEXT"""
+
+
+def main(argv=None):
+    os.umask(0o077)
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    args = list(sys.argv[1:] if argv is None else argv)
+    cmd, rest = (args[0] if args else 'list'), args[1:]
+    if cmd in ('hide', 'preview', 'export'):
+        ids = [a for a in rest if not a.startswith('--')]
+        if len(ids) < 2 or not (safe(ids[0]) and safe(ids[1])):
+            sys.exit('aisp: bad agent or session id')
+    if cmd == 'list':
+        as_json = '--json' in rest
+        return list_sessions(' '.join(a for a in rest if a != '--json').lower().split(), as_json)
+    if cmd == 'hide':
+        return save_json(HIDDEN, sorted(set(load_json(HIDDEN, [])) | {f'{rest[0]}:{rest[1]}'}))
+    if cmd == 'unhide-all':
+        return save_json(HIDDEN, [])
+    if cmd == 'preview':
+        ids = [a for a in rest if not a.startswith('--')]
+        return show_preview(ids[0], ids[1], '--full' in rest)
+    if cmd == 'export' and len(rest) == 3:
+        if not export_markdown(rest[0], rest[1], rest[2]):
+            sys.exit('aisp: session not found')
+        return
+    if cmd == 'copy' and len(rest) == 1:
+        return copy_text(rest[0])
+    if cmd == 'doctor':
+        sys.exit(doctor())
+    sys.exit(f'usage:\n{USAGE}')
 
 
 if __name__ == '__main__':
