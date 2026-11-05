@@ -7,6 +7,26 @@ from .duck import DUCK
 USAGE = sessions.USAGE
 
 
+def terminal():
+    # fzf gives executed commands its own stdout, which is a pipe under the picker, so talk to the terminal directly.
+    try:
+        if sys.platform == 'win32':
+            return open('CONOUT$', 'w', encoding='utf-8'), open('CONIN$', 'r', encoding='utf-8')
+        return open('/dev/tty', 'w', encoding='utf-8'), open('/dev/tty', 'r', encoding='utf-8')
+    except OSError:
+        return sys.stdout, sys.stdin
+
+
+def show_help_page():
+    out, inp = terminal()
+    out.write('\033[H\033[2J' + guide.guide() + '\n\npress Enter to go back ')
+    out.flush()
+    try:
+        inp.readline()
+    except (OSError, KeyboardInterrupt):
+        pass
+
+
 def version():
     try:
         from importlib.metadata import version as v
@@ -22,12 +42,9 @@ def main():
     if args == ['--window']:
         return picker.open_window()
     if args[0] == 'help':
-        print(guide.guide())
         if '--wait' in args:
-            try:
-                input('\npress Enter to go back ')
-            except (EOFError, KeyboardInterrupt):
-                pass
+            return show_help_page()
+        print(guide.guide())
         return
     if args[0] in ('-h', '--help'):
         print(DUCK)
