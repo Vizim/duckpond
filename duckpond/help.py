@@ -25,6 +25,7 @@ COMMANDS = [
     ('duckpond export AGENT ID FILE', 'write one conversation as markdown'),
     ('duckpond config terminal "..."', 'choose the terminal used by --window and the app launcher'),
     ('duckpond install-launcher', 'add a Duckpond app with an icon to this desktop'),
+    ('duckpond install-skills', 'give each agent a skill file so it knows duckpond and how to take a handoff'),
     ('duckpond doctor', 'check agents, stores, fzf and the cache'),
 ]
 

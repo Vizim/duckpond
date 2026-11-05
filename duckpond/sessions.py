@@ -642,6 +642,8 @@ duckpond pond [--once|--demo]  watch the agents that are running right now, as d
 duckpond config [KEY [VALUE]]  show or change settings, e.g. duckpond config terminal "alacritty -e"
 duckpond install-launcher      add an "AI Sessions" app with an icon to this desktop
 duckpond uninstall-launcher    remove it again
+duckpond install-skills [AGENT...]  teach Claude Code, Codex and Hermes about duckpond and handoffs
+duckpond uninstall-skills      remove those skill files
 duckpond preview [--full] AGENT ID
 duckpond export AGENT ID FILE   write a session as markdown
 duckpond hide AGENT ID | duckpond unhide-all | duckpond copy TEXT

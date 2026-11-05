@@ -32,4 +32,4 @@ pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.setuptools.package-data]
-duckpond = ["assets/*"]
+duckpond = ["assets/*", "skills/*/*"]

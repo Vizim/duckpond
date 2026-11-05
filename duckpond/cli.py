@@ -1,7 +1,7 @@
 """The duckpond command: the picker by default, otherwise an indexer subcommand."""
 import sys
 
-from . import config, help as guide, launcher, picker, pond, sessions
+from . import config, help as guide, launcher, picker, pond, sessions, skills
 from .duck import DUCK
 
 USAGE = sessions.USAGE
@@ -37,6 +37,12 @@ def main():
         return
     if args == ['uninstall-launcher']:
         print(launcher.uninstall())
+        return
+    if args[0] == 'install-skills':
+        print(skills.install(args[1:] or None))
+        return
+    if args == ['uninstall-skills']:
+        print(skills.uninstall())
         return
     if args[0] == 'pond':
         return pond.run(args[1:])

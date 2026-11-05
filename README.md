@@ -12,7 +12,7 @@ Type to search. Ctrl-P shows the whole transcript:
 
 ![searching for rocket with the full transcript in the preview](docs/search.svg)
 
-Watch the ducks that are running right now with `duckpond pond`:
+Watch the agents that are running right now with `duckpond pond`:
 
 ![duckpond pond showing three running agents as ducks](docs/pond.svg)
 
@@ -126,12 +126,20 @@ Environment variables override the file for one run:
 
 Press Ctrl-O on a session and pick the target agent. The picker writes the conversation (your prompts and the agent's replies, newest 200 KB if it is long) to a markdown file in the cache, then starts the target in the session's directory with an opening prompt that points at the file. Claude and Codex take that prompt on the command line. Hermes cannot take an opening prompt and stay interactive, so the picker starts `hermes chat` and puts the prompt on your clipboard to paste.
 
+## Teaching the agents about duckpond
+
+```sh
+duckpond install-skills
+```
+
+copies a `SKILL.md` into each installed agent's skills folder (`~/.claude/skills/duckpond`, `~/.codex/skills/duckpond`, `~/.hermes/skills/duckpond`). With it, an agent that receives a handoff knows to read the file and continue rather than start over, knows to point you at Ctrl-O instead of hand-copying context when you ask to switch agents, can answer "what was I working on" from `duckpond list --json`, and can run `duckpond doctor` when something looks off. This is the one thing duckpond writes under an agent's home, it is opt-in, and `duckpond uninstall-skills` removes it. The skill text is in `duckpond/skills/duckpond/SKILL.md`.
+
 ## Privacy
 
 Your conversations with these agents are some of the most personal data on your computer. duckpond treats them that way.
 
 - **Nothing leaves the machine.** There is no server, no telemetry, no update check and no analytics. The only socket it opens is fzf's control port on `127.0.0.1`, protected by a random key for each launch, which the picker uses to refresh its own list.
-- **Agent stores are read, never written.** Transcript files are opened read-only and the Hermes database is opened in SQLite read-only mode. Hiding a session writes its id to duckpond's own cache. Nothing in `~/.claude`, `~/.codex` or `~/.hermes` is ever modified or deleted.
+- **Agent stores are read, never written.** Transcript files are opened read-only and the Hermes database is opened in SQLite read-only mode. Hiding a session writes its id to duckpond's own cache. Nothing in `~/.claude`, `~/.codex` or `~/.hermes` is ever modified or deleted, with one opt-in exception: `duckpond install-skills` adds a `skills/duckpond/SKILL.md` folder there and `uninstall-skills` removes it.
 - **No credentials.** duckpond does not read, store or pass along any token. Each agent signs in through its own flow. duckpond runs `claude`, `codex` or `hermes` exactly as you would in a shell.
 - **The cache is yours and private.** `~/.cache/duckpond` holds session summaries, previews and any handoff exports. It is created with owner-only permissions (`0700` directory, `0600` files). `sh install.sh --uninstall` offers to remove it, or delete it by hand at any time; duckpond rebuilds it.
 - **Handoffs are explicit.** Pressing Ctrl-O writes one conversation to a markdown file in the cache and opens the agent you chose on it. Which agent sees which conversation is always your keypress.

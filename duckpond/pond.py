@@ -5,10 +5,12 @@ import sys
 import time
 
 from . import sessions
+from .duck import BOLD, DIM, MINI_ROWS, RESET
 
-DUCK = ['  __    ', '<(o )___', ' ( ._> /', "  `---' "]
 ANSI = re.compile(r'\x1b\[[0-9;]*m')
-RESET = '\033[0m'
+CYAN = '\033[36m'
+DUCK_W = len(MINI_ROWS[0])
+WAVE = '⠈⠉⠁⠀⠀⢀⣀⡀⠀⠀'
 
 
 def live_ducks():
@@ -17,32 +19,38 @@ def live_ducks():
     return [(agent, sessions.title(d)) for _, agent, _, _, d, status in rows if status]
 
 
+def water(width, t, phase=0):
+    return ''.join(WAVE[(i + t + phase) % len(WAVE)] for i in range(width))
+
+
 def frame(ducks, width, t):
-    # One picture: sky, a row of ducks bobbing on alternate ticks, two rows of water, labels.
-    width = max(40, width)
-    water = ''.join('~' if (i + t) % 4 < 2 else ' ' for i in range(width))
+    # Ducks bob on alternate ticks over three rows of drifting Braille water, labels underneath.
+    width = max(48, width)
     if not ducks:
-        sign = 'no ducks on the pond right now'
-        return ['', '', sign.center(width).rstrip(), '', water, water, '']
-    slot = max(10, width // len(ducks))
-    chars = [[' '] * width for _ in range(5)]
-    colors = [[''] * width for _ in range(5)]
-    labels = [' '] * width
+        sign = f'{DIM}no ducks on the pond right now. start an agent and come back.{RESET}'
+        return ['', '', ' ' * ((width - 58) // 2) + sign, '', f'{CYAN}{water(width, t)}{RESET}',
+                f'{CYAN}{water(width, t, 3)}{RESET}', f'{CYAN}{water(width, t, 6)}{RESET}', '']
+    slot = max(DUCK_W + 4, width // len(ducks))
+    rows = [[' '] * width for _ in range(len(MINI_ROWS) + 1)]
+    colors = [[''] * width for _ in range(len(MINI_ROWS) + 1)]
+    labels = [[' '] * width for _ in range(2)]
+    label_colors = [[''] * width for _ in range(2)]
     for i, (agent, title) in enumerate(ducks):
-        x = min(i * slot + (slot - 8) // 2, width - 8)
+        x = min(i * slot + (slot - DUCK_W) // 2, width - DUCK_W)
         bob = (t + i) % 2
         color = sessions.AGENTS.get(agent, {}).get('color', '')
-        for r, part in enumerate(DUCK):
+        for r, part in enumerate(MINI_ROWS):
             for j, ch in enumerate(part):
-                if ch != ' ':
-                    chars[r + bob][x + j] = ch
+                if ch != '⠀':
+                    rows[r + bob][x + j] = ch
                     colors[r + bob][x + j] = color
-        label = sessions.one_line(title, max(6, slot - 2))
-        lx = max(0, min(x + 4 - len(label) // 2, width - len(label)))
-        for j, ch in enumerate(label):
-            labels[lx + j] = ch
+        for k, text in enumerate((agent, sessions.one_line(title, max(8, slot - 2)))):
+            lx = max(0, min(x + DUCK_W // 2 - len(text) // 2, width - len(text)))
+            for j, ch in enumerate(text):
+                labels[k][lx + j] = ch
+                label_colors[k][lx + j] = color if k == 0 else DIM
     out = ['']
-    for row, row_colors in zip(chars, colors):
+    for row, row_colors in zip(rows + labels, colors + label_colors):
         text, current = '', ''
         for ch, color in zip(row, row_colors):
             if color != current:
@@ -50,9 +58,8 @@ def frame(ducks, width, t):
                 current = color
             text += ch
         out.append((text + (RESET if current else '')).rstrip())
-    out.append('\033[36m' + water + RESET)
-    out.append('\033[36m' + water.replace('~', '-') + RESET)
-    out.append(''.join(labels).rstrip())
+    out.insert(len(MINI_ROWS) + 2, f'{CYAN}{water(width, t)}{RESET}')
+    out.insert(len(MINI_ROWS) + 3, f'{CYAN}{water(width, t, 3)}{RESET}')
     return out
 
 
@@ -62,23 +69,24 @@ def plain(lines):
 
 def run(args):
     once, demo = '--once' in args, '--demo' in args
-    ducks = ([('claude', 'Rate limiter returns 429'), ('codex', 'redis cache'), ('hermes', 'Reconcile October')]
-             if demo else live_ducks())
+    ducks = ([('claude', 'Rate limiter returns 429 too early'), ('codex', 'redis cache for pricing'),
+              ('hermes', 'Reconcile October statements')] if demo else live_ducks())
     t = 0
     try:
         while True:
             width = shutil.get_terminal_size((80, 24)).columns
             lines = frame(ducks, width, t)
-            header = f'duckpond  {len(ducks)} duck{"s" if len(ducks) != 1 else ""} swimming'
+            n = len(ducks)
+            header = f'{BOLD}duckpond{RESET}  {DIM}{n} duck{"s" if n != 1 else ""} on the pond{RESET}'
             if not once:
                 sys.stdout.write('\033[H\033[2J')
             sys.stdout.write('\n'.join([header] + lines) + '\n')
             sys.stdout.flush()
             if once:
                 return
-            time.sleep(0.6)
+            time.sleep(0.5)
             t += 1
-            if t % 10 == 0 and not demo:
+            if t % 12 == 0 and not demo:
                 ducks = live_ducks()
     except KeyboardInterrupt:
         sys.stdout.write('\n')

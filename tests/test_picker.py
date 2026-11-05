@@ -1,3 +1,5 @@
+import os
+
 from duckpond import picker
 
 
@@ -62,14 +64,18 @@ def test_config_roundtrip(tmp_path, monkeypatch):
 
 def test_pond_frame_layout():
     from duckpond import pond
+    from duckpond.duck import MINI_ROWS
     empty = pond.plain(pond.frame([], 60, 0))
     assert any('no ducks' in line for line in empty)
     ducks = [('claude', 'Rate limiter returns 429'), ('codex', 'redis cache'), ('hermes', 'Reconcile October')]
+    beak = MINI_ROWS[0].strip('\u2800')
     for t in (0, 1):
-        lines = pond.plain(pond.frame(ducks, 80, t))
-        assert sum(line.count('<(o )___') for line in lines) == 3
-        assert all(len(line) <= 80 for line in lines)
+        lines = pond.plain(pond.frame(ducks, 90, t))
+        assert sum(line.count(beak) for line in lines) == 3
+        assert all(len(line) <= 90 for line in lines)
+        assert 'claude' in lines[-2] and 'hermes' in lines[-2]
         assert 'redis cache' in lines[-1] and 'Reconcile October' in lines[-1]
+        assert sum(1 for line in lines if '\u2800' in line or '⠉' in line) >= 2
 
 
 def test_header_and_mini_duck():
@@ -91,3 +97,27 @@ def test_guide_mentions_every_key_in_the_header():
         assert key in text
     assert 'duckpond pond' in text and '~/.cache/duckpond' in text
     assert not re.search(r'\x1b', text)
+
+
+def test_install_skills_into_agent_homes(stores, capsys):
+    import importlib
+    from duckpond import skills
+    importlib.reload(skills)
+    out = skills.install()
+    for agent, home in (('claude', 'CLAUDE_CONFIG_DIR'), ('codex', 'CODEX_HOME'), ('hermes', 'HERMES_HOME')):
+        path = os.path.join(os.environ[home], 'skills', 'duckpond', 'SKILL.md')
+        assert os.path.isfile(path), agent
+        text = open(path, encoding='utf-8').read()
+        assert text.startswith('---\nname: duckpond\n') and 'handoff-' in text and 'duckpond list --json' in text
+    assert 'claude' in out and 'hermes' in out
+    assert skills.uninstall().startswith('removed')
+    assert not os.path.exists(os.path.join(os.environ['CODEX_HOME'], 'skills', 'duckpond'))
+
+
+def test_doctor_ends_with_a_verdict(stores, capsys):
+    import pytest
+    s = stores['sessions']
+    with pytest.raises(SystemExit):
+        s.main(['doctor'])
+    out = capsys.readouterr().out
+    assert 'the pond is open' in out or 'install fzf' in out or 'no agents found' in out
