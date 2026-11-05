@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Agent Sessions
+Comment=Pick and resume a recent Claude Code, Codex or Hermes session
+Exec=agent-picker --window
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
