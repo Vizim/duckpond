@@ -5,11 +5,10 @@ import sys
 import time
 
 from . import sessions
-from .duck import BOLD, DIM, MINI_ROWS, RESET
+from .duck import BOLD, DIM, MID_ROWS, MINI_ROWS, RESET
 
 ANSI = re.compile(r'\x1b\[[0-9;]*m')
 CYAN = '\033[36m'
-DUCK_W = len(MINI_ROWS[0])
 WAVE = '⠈⠉⠁⠀⠀⢀⣀⡀⠀⠀'
 
 
@@ -30,22 +29,24 @@ def frame(ducks, width, t):
         sign = f'{DIM}no ducks on the pond right now. start an agent and come back.{RESET}'
         return ['', '', ' ' * ((width - 58) // 2) + sign, '', f'{CYAN}{water(width, t)}{RESET}',
                 f'{CYAN}{water(width, t, 3)}{RESET}', f'{CYAN}{water(width, t, 6)}{RESET}', '']
-    slot = max(DUCK_W + 4, width // len(ducks))
-    rows = [[' '] * width for _ in range(len(MINI_ROWS) + 1)]
-    colors = [[''] * width for _ in range(len(MINI_ROWS) + 1)]
+    slot = max(len(MINI_ROWS[0]) + 4, width // len(ducks))
+    art = MID_ROWS if slot >= len(MID_ROWS[0]) * 2 + 6 else MINI_ROWS
+    duck_w = len(art[0])
+    rows = [[' '] * width for _ in range(len(art) + 1)]
+    colors = [[''] * width for _ in range(len(art) + 1)]
     labels = [[' '] * width for _ in range(2)]
     label_colors = [[''] * width for _ in range(2)]
     for i, (agent, title) in enumerate(ducks):
-        x = min(i * slot + (slot - DUCK_W) // 2, width - DUCK_W)
+        x = min(i * slot + (slot - duck_w) // 2, width - duck_w)
         bob = (t + i) % 2
         color = sessions.AGENTS.get(agent, {}).get('color', '')
-        for r, part in enumerate(MINI_ROWS):
+        for r, part in enumerate(art):
             for j, ch in enumerate(part):
-                if ch != '⠀':
+                if ch != '\u2800':
                     rows[r + bob][x + j] = ch
                     colors[r + bob][x + j] = color
         for k, text in enumerate((agent, sessions.one_line(title, max(8, slot - 2)))):
-            lx = max(0, min(x + DUCK_W // 2 - len(text) // 2, width - len(text)))
+            lx = max(0, min(x + duck_w // 2 - len(text) // 2, width - len(text)))
             for j, ch in enumerate(text):
                 labels[k][lx + j] = ch
                 label_colors[k][lx + j] = color if k == 0 else DIM
@@ -58,8 +59,8 @@ def frame(ducks, width, t):
                 current = color
             text += ch
         out.append((text + (RESET if current else '')).rstrip())
-    out.insert(len(MINI_ROWS) + 2, f'{CYAN}{water(width, t)}{RESET}')
-    out.insert(len(MINI_ROWS) + 3, f'{CYAN}{water(width, t, 3)}{RESET}')
+    out.insert(len(art) + 2, f'{CYAN}{water(width, t)}{RESET}')
+    out.insert(len(art) + 3, f'{CYAN}{water(width, t, 3)}{RESET}')
     return out
 
 

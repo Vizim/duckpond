@@ -64,7 +64,7 @@ def test_config_roundtrip(tmp_path, monkeypatch):
 
 def test_pond_frame_layout():
     from duckpond import pond
-    from duckpond.duck import MINI_ROWS
+    from duckpond.duck import MID_ROWS, MINI_ROWS
     empty = pond.plain(pond.frame([], 60, 0))
     assert any('no ducks' in line for line in empty)
     ducks = [('claude', 'Rate limiter returns 429'), ('codex', 'redis cache'), ('hermes', 'Reconcile October')]
@@ -76,6 +76,8 @@ def test_pond_frame_layout():
         assert 'claude' in lines[-2] and 'hermes' in lines[-2]
         assert 'redis cache' in lines[-1] and 'Reconcile October' in lines[-1]
         assert sum(1 for line in lines if '\u2800' in line or '⠉' in line) >= 2
+    wide = pond.plain(pond.frame(ducks[:1], 120, 0))
+    assert any(MID_ROWS[0].strip('\u2800') in line for line in wide)
 
 
 def test_header_and_mini_duck():
