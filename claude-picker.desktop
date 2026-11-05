@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Claude Code Sessions
+Comment=Pick and resume a recent Claude Code session
+Exec=claude-picker --window
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;

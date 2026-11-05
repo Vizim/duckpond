@@ -1,0 +1,91 @@
+#!/bin/bash
+# Pick a recent Claude Code session with fzf and resume it.
+#
+#   claude-picker            run the picker in this terminal
+#   claude-picker --window   open the picker in $CLAUDE_PICKER_TERMINAL (default kitty)
+set -u
+
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+INDEXER="$(dirname "$SELF")/claude-sessions.py"
+TERMINAL="${CLAUDE_PICKER_TERMINAL:-kitty}"
+CACHE="${CLAUDE_PICKER_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/claude-picker}"
+# fzf only accepts reload/execute actions over 127.0.0.1; a per-launch key guards the port.
+PICKER_ADDR="${CLAUDE_PICKER_ADDR:-127.0.0.1}"
+PICKER_PORT="${CLAUDE_PICKER_PORT:-44144}"
+export PATH="$HOME/.local/bin:$PATH"
+
+need() { command -v "$1" >/dev/null || { echo "claude-picker: $1 not found" >&2; exit 1; }; }
+
+copy_text() {
+  if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wl-copy >/dev/null; then wl-copy
+  elif command -v xclip >/dev/null; then xclip -selection clipboard
+  else cat >/dev/null; return 1
+  fi
+}
+
+# Rows come from claude-sessions.py: "<id>\t<dir>\t<label>" plus a preview file per row.
+pick() {
+  local list out key sel sid dir port=$PICKER_PORT
+  need fzf; need python3; need claude
+  ss -Hltn "src $PICKER_ADDR:$port" 2>/dev/null | grep -q . && port=0
+  FZF_API_KEY=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n'); export FZF_API_KEY
+  list="CLAUDE_PICKER_CACHE='$CACHE' python3 '$INDEXER'"
+  out=$(eval "$list" | fzf --delimiter='\t' --with-nth=3 --ansi --reverse --height=100% --disabled \
+            --prompt='claude > ' --expect=ctrl-n,ctrl-t,ctrl-f --listen "$PICKER_ADDR:$port" --track \
+            --bind "start:execute-silent(setsid -f bash '$SELF' --watch \$FZF_PORT \$PPID)" \
+            --bind "change:reload($list {q})" --bind "ctrl-r:reload($list {q})" \
+            --bind "ctrl-x:execute-silent($list --hide {1})+reload($list {q})" \
+            --bind "ctrl-u:execute-silent($list --unhide-all)+reload($list {q})" \
+            --bind "ctrl-y:execute-silent(printf %s {1} | bash '$SELF' --copy)" \
+            --header='Enter resume | C-F fork | C-N new here | C-T cloud here | C-X hide | C-U unhide all | C-Y copy id | C-R refresh' \
+            --preview="cat '$CACHE'/{1}.txt 2>/dev/null" \
+            --preview-window='right,50%,wrap,<110(down,45%,wrap)') || exit 0
+  key=$(head -n1 <<<"$out")
+  sel=$(sed -n 2p <<<"$out")
+  [ -z "$sel" ] && exit 0
+  sid=$(cut -f1 <<<"$sel")
+  dir=$(cut -f2 <<<"$sel")
+  cd "$dir" 2>/dev/null || cd "$HOME" || exit 1
+  case "$key:$sid" in
+    ctrl-n:*)     exec claude ;;
+    ctrl-t:*)     exec claude --teleport ;;
+    ctrl-f:__*)   exec claude ;;
+    ctrl-f:*)     exec claude --resume "$sid" --fork-session ;;
+    *:__NEW__)    exec claude ;;
+    *:__CLOUD__)  teleport_by_link ;;
+  esac
+  exec claude --resume "$sid"
+}
+
+# Read a claude.ai/code link (or bare session id) and resume it locally.
+teleport_by_link() {
+  local link id
+  printf 'claude.ai/code link or session id: '
+  IFS= read -r link
+  id=$(grep -oE 'session_[A-Za-z0-9]+' <<<"$link" | head -n1)
+  [ -z "$id" ] && { echo "no session id in that" >&2; sleep 2; exit 1; }
+  exec claude --teleport "$id"
+}
+
+# Push a reload to the picker on $PICKER_ADDR:$1 whenever a transcript changes, while fzf (pid $2) lives.
+watch() {
+  local port=$1 fzf=$2 seen="" now
+  while kill -0 "$fzf" 2>/dev/null; do
+    now=$(ls -l --time-style=+%s ~/.claude/projects/*/*.jsonl 2>/dev/null | md5sum)
+    if [ -n "$seen" ] && [ "$now" != "$seen" ]; then
+      curl -sf --max-time 2 -H "x-api-key: ${FZF_API_KEY:-}" -XPOST "$PICKER_ADDR:$port" \
+        -d "reload(CLAUDE_PICKER_CACHE='$CACHE' python3 '$INDEXER' {q})" >/dev/null
+    fi
+    seen=$now
+    sleep 2
+  done
+}
+
+case "${1:-}" in
+  "")        pick ;;
+  --window)  setsid -f "$TERMINAL" -e bash "$SELF" >/dev/null 2>&1 ;;
+  --watch)   watch "${2:?port}" "${3:?fzf pid}" ;;
+  --copy)    copy_text ;;
+  -h|--help) sed -n '2,5p' "$SELF" | cut -c3- ;;
+  *) echo "usage: claude-picker [--window]" >&2; exit 2 ;;
+esac
