@@ -133,3 +133,17 @@ def test_doctor_runs(stores, capsys):
         s.main(['doctor'])
     out = capsys.readouterr().out
     assert 'sessions   9 listed' in out and 'cache' in out
+
+
+def test_typed_cd_moves_the_resume_directory(stores, capsys):
+    s = stores['sessions']
+    listing(s, capsys)
+    index = s.load_json(s.INDEX, {})
+    path = next(p for p, e in index.items() if e['agent'] == 'claude' and e['sid'] == stores['ids']['claude'][0])
+    line = {'type': 'user', 'cwd': '/home/ada/dev/rocket-api/services', 'isSidechain': False,
+            'message': {'role': 'user', 'content': '<bash-input>cd services</bash-input>'}}
+    with open(path, 'a', encoding='utf-8') as fh:
+        fh.write(json.dumps(line, separators=(',', ':')) + '\n')
+    rows = listing(s, capsys)
+    row = next(r for r in rows if r[1] == stores['ids']['claude'][0])
+    assert row[2] == '/home/ada/dev/rocket-api/services'

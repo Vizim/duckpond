@@ -537,8 +537,9 @@ def session_rows(terms, live, hidden):
             status = live[sid]['status']
         elif d.get('open'):
             status = 'open'
-        where = (live.get(sid) or {}).get('cwd') if agent == 'claude' else None
-        where = where or d['shell'] or d['root']
+        # A cd you typed wins, then the directory a live session was launched from, then the project.
+        launched = (live.get(sid) or {}).get('cwd') if agent == 'claude' else None
+        where = d['shell'] or launched or d['root']
         if terms and not matches(terms, agent, d, where):
             continue
         rows.append((ent['mtime'], agent, sid, where, d, status))
