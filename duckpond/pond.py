@@ -528,6 +528,7 @@ class Sampler:
         self.started = None
         self.ducks = []
         self.prev = {}
+        self.changed = {}
         self.hist = {}
         self.busy_per = {}
         self.tin, self.tout, self.busy, self.burn, self.ctx = [], [], [], [], []
@@ -553,6 +554,7 @@ class Sampler:
             if last_in or last_out:
                 self.hist[duck['sid']] = [(now, last_in, last_out, 0.0)]
         self.ctx = [float(sum(d.get('ctx') or 0 for d in ducks))] * samples
+        self.changed = {d['sid']: now for d in ducks}
         self.started = now - self.WINDOW
 
     def sample(self, ducks, now=None):
@@ -562,6 +564,8 @@ class Sampler:
         self.ducks = list(ducks)
         span = max(1.0, min(self.WINDOW, now - self.started))
         total_in = total_out = spend = 0.0
+        self.tin.append(0.0)
+        self.tout.append(0.0)
         for duck in ducks:
             sid = duck['sid']
             fresh = duck['tin']
@@ -569,9 +573,21 @@ class Sampler:
             prev = self.prev.get(sid)
             hist = self.hist.setdefault(sid, [])
             if prev:
-                hist.append((now, max(0, fresh - prev[0]), max(0, duck['tout'] - prev[1]), max(0.0, cost - prev[2])))
+                din, dout = max(0, fresh - prev[0]), max(0, duck['tout'] - prev[1])
+                hist.append((now, din, dout, max(0.0, cost - prev[2])))
+                if din or dout:
+                    # The tokens arrived while the model worked on them, since this duck last changed:
+                    # spread them over those seconds so the graph shows the work as it happened.
+                    since = max(self.interval, now - self.changed.get(sid, now - self.interval))
+                    k = max(1, min(len(self.tin), round(since / self.interval)))
+                    for i in range(1, k + 1):
+                        self.tin[-i] += din / since
+                        self.tout[-i] += dout / since
+                    self.changed[sid] = now
             elif hist:
                 hist[-1] = (now, hist[-1][1], hist[-1][2], hist[-1][3])
+            else:
+                self.changed.setdefault(sid, now)
             while hist and now - hist[0][0] > self.WINDOW:
                 hist.pop(0)
             rin = sum(h[1] for h in hist) / span
@@ -592,9 +608,8 @@ class Sampler:
                 del self.prev[sid]
                 self.hist.pop(sid, None)
                 self.busy_per.pop(sid, None)
+                self.changed.pop(sid, None)
         self.rate_in, self.rate_out = total_in, total_out
-        self.tin.append(total_in)
-        self.tout.append(total_out)
         self.burn.append(spend)
         self.ctx.append(float(sum(d.get('ctx') or 0 for d in ducks)))
         self.busy.append(busy_share(ducks))
@@ -635,7 +650,7 @@ def lower(st, net, width, height, hidden=()):
     divider = clip(f'{GREEN}▼ in{RESET}{BORDER}' + '─' * max(0, gw - 11) + f'{RESET}{CYAN}▲ out{RESET}', gw)
     down = [vflip(line) for line in reversed(braille_graph(scaled(tout, log=True, top=top), gw, max(1, graph_h - top_h - 1), GRADIENT_OUT))]
     axis = (f'{GREEN}▼ in{RESET} {human(net.rate_in)}/s   {CYAN}▲ out{RESET} {human(net.rate_out * 60)}/m'
-            f'   {DIM}one log scale · 1 min averages · last {gw * 2 * net.interval:g}s{RESET}')
+            f'   {DIM}log · per second · last {gw * 2 * net.interval:g}s{RESET}')
     tokens = box('tokens', up + [divider] + down + [axis], left_w, height, num=2,
                  right=f"today {human(st['tin_today'])} in · {human(st['tout_today'])} out")
     bw = max(2, mid_w - 4)

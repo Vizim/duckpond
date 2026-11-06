@@ -243,7 +243,7 @@ def test_pond_btop_panels():
     synced = pond.scaled([0, 1000], log=True, top=1000) + pond.scaled([10], log=True, top=1000)
     assert synced[1] == 1.0 and 0.3 < synced[2] < 0.4
     assert any('one log scale' in line for line in tall)
-    assert any('▼ in' in line and 'log scale' in line for line in tall)
+    assert any('▼ in' in line and 'log · per second' in line for line in tall)
     assert any('▲900/m' in line for line in tall)
     for w in range(96, 110):
         for line in pond.plain(pond.screen(ducks, 0, pond.demo_stats(), net, w, 30)):
@@ -272,10 +272,11 @@ def test_pond_btop_panels():
     s.sample([a], now=1000.0)
     a['tin'], a['tout'], a['cost'] = 700, 70, 1.02
     s.sample([a], now=1002.0)
-    assert a['rate'] == (10.0, 1.0) and s.tin[-1] == 10.0 and s.busy == [1.0, 1.0]
+    assert a['rate'] == (10.0, 1.0) and s.busy == [1.0, 1.0]
+    assert s.tin[-1] == 300.0 and s.tin[-2] == 300.0 and s.tin[-3] == 0.0 and s.tout[-1] == 30.0
     assert a['worked'] == (2.0, 2.0) and abs(s.burn[-1] - 1.2) < 1e-6
     s.sample([a], now=1030.0)
-    assert a['rate'] == (10.0, 1.0) and abs(s.burn[-1] - 1.2) < 1e-6
+    assert a['rate'] == (10.0, 1.0) and abs(s.burn[-1] - 1.2) < 1e-6 and s.tin[-1] == 0.0
     s.sample([a], now=1070.0)
     assert a['rate'] == (0.0, 0.0) and s.burn[-1] == 0.0
     s.sample([], now=1003.0)
@@ -284,7 +285,7 @@ def test_pond_btop_panels():
     seeded = dict(sid='b', tin=6000, tout=600, cached=0, status='busy', cost=0.0, ctx=1000,
                   recent=[[5000 * 60 - 120, 3000, 300, 0], [5000 * 60 - 60, 3000, 300, 0]])
     s2.sample([seeded], now=5000 * 60.0)
-    assert len(s2.tin) == 400 and s2.tin[-1] == 50.0 and s2.tout[-1] == 5.0 and s2.tin[-130] == 0.0
+    assert len(s2.tin) == 401 and s2.tin[-1] == 0.0 and s2.tin[-2] == 50.0 and s2.tout[-2] == 5.0 and s2.tin[-130] == 0.0
     assert seeded['rate'] == (50.0, 5.0) and s2.ctx[-1] == 1000.0
     s2.sample([seeded], now=5000 * 60.0 + 30)
     assert seeded['rate'] == (50.0, 5.0)
