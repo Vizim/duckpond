@@ -224,7 +224,7 @@ def test_copilot_and_vscode_backends(stores, monkeypatch):
     assert status == 'busy' and d['busy'] and where == '/home/ada/dev/rocket-api' and d['tool'] == 'bash npm test'
     assert d['prompts'] == ['why does the deploy script skip the migrations step'] and d['reply'].startswith('The step is gated')
     d, status, where = vs[0]
-    assert status is None and where == '/home/ada/dev/bakery-site' and sessions.title(d) == 'Contact form validation'
+    assert status is None and where == os.path.normpath('/home/ada/dev/bakery-site') and sessions.title(d) == 'Contact form validation'
     monkeypatch.setattr(sessions, 'vscode_open_workspaces', lambda: {'bakery-site'})
     rows, _ = sessions.session_rows([], sessions.live_claude(), set())
     assert [status for _, agent, sid, where, dd, status in rows if agent == 'vscode'] == ['open']
