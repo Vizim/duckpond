@@ -50,8 +50,8 @@ def mini(lines, color=True):
 TEXT_ROWS = {
     4: f'{BOLD}duckpond{RESET}',
     5: TAGLINE,
-    7: f'{DIM}one picker for every Claude Code, Codex{RESET}',
-    8: f'{DIM}and Hermes session on this machine{RESET}',
+    7: f'{DIM}one picker for every Claude Code, Codex, Hermes,{RESET}',
+    8: f'{DIM}Copilot CLI and VS Code chat on this machine{RESET}',
 }
 
 

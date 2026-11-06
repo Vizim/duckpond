@@ -2,7 +2,7 @@
 
 ![duckpond](docs/duck.svg)
 
-You rubber-duck with AI coding agents all day. Claude Code, Codex, Hermes: each one keeps its own history, and each one only shows you the sessions for the folder you launched it from. After a week you have a pond full of ducks and no idea which one you were talking to.
+You rubber-duck with AI coding agents all day. Claude Code, Codex, Hermes, Copilot CLI, Copilot Chat in VS Code: each one keeps its own history, and each one only shows you the sessions for the folder you launched it from. After a week you have a pond full of ducks and no idea which one you were talking to.
 
 **duckpond** is one small, dependency-free entry point for all of them. The `duckpond` command (or `aisp` for short) lists every session from every agent across every project, gives each one a title and a preview of what you asked and what the duck said back, and resumes the one you pick in the right directory with the right agent. It can hand a conversation from one duck to another, and it never lets your conversations leave the machine.
 
@@ -11,6 +11,8 @@ You rubber-duck with AI coding agents all day. Claude Code, Codex, Hermes: each 
 Type to search. Ctrl-P shows the whole transcript:
 
 ![searching for rocket with the full transcript in the preview](docs/search.svg)
+
+Resuming a VS Code chat opens the workspace in VS Code and tells you which chat to pick from its history, since VS Code has no command-line way to open one chat. Handing off to VS Code runs `code chat` with the opening prompt; handing off to Copilot CLI starts it with the prompt.
 
 Keep `duckpond pond` open on a second screen. It is a heads-up display in the spirit of btop: it fills the terminal with a pond box on top, where every running agent is a duck, and tiled panels below, each titled the btop way with its toggle key: a network-style graph of tokens in (per second) and tokens out (per minute), both log scaled, as one-minute averages; a context box with a graph of context in use and a meter per session against its 200k or 1M window; and totals: sessions, prompts, tokens and cost for today and all time, cache hit rate, per-agent share of output, and today's cost, prompts and output per active hour. Every duck blinks and paddles about; busy ones bob and ripple, idle ones drift slowly, hop and sometimes quack. Subagents, whether Claude Code Agent calls or Hermes delegations, paddle behind their parent as ducklings. Under each duck is its card: status, for how long, and how much of the last ten minutes it spent working; title; directory and branch; uptime, prompts, cost and cache hit rate; tokens in and out with live rates and a sparkline; its ducklings; the tool it is running right now; and your last prompt. On a short terminal the cards shrink to status, title, tokens and tool. Keys 1 to 4 toggle the pond, tokens, context and totals boxes and the rest reflow to fill the space; the choice is remembered. `+` and `-` change the refresh interval, r refreshes, q or Esc leaves, and `duckpond last` resumes the newest session when you want to jump back in:
 
@@ -54,7 +56,7 @@ The whole point is that it costs almost nothing to have around.
 
 `duckpond help` prints the same guide in the terminal. Don't feel like typing `duckpond`? `aisp` does exactly the same thing. Outside the picker: `duckpond pond` is the live dashboard, `duckpond last` resumes your most recent session (`duckpond last codex` the most recent Codex one, any words filter like the search bar), `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup.
 
-Type an agent name to filter to it, for example `codex` or `hermes rocket`.
+Type an agent name to filter to it, for example `codex`, `vscode` or `hermes rocket`.
 
 ## Requirements
 
@@ -62,7 +64,7 @@ Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 | --- | --- | --- |
 | Python | 3.9 or newer | No Python packages; duckpond is standard library only. Contributors: `pip install -e .[dev]` adds pytest |
 | fzf | 0.44 or newer | The installer fetches it if missing. Otherwise `brew install fzf`, `apt install fzf`, `winget install fzf` or a [release binary](https://github.com/junegunn/fzf/releases) |
-| An agent | any of Claude Code, Codex, Hermes | duckpond lists whatever it finds; the command must be on `PATH` to resume |
+| An agent | any of Claude Code, Codex, Hermes, GitHub Copilot CLI, VS Code with Copilot Chat | duckpond lists whatever it finds; the command (`claude`, `codex`, `hermes`, `copilot`, `code`) must be on `PATH` to resume |
 | For the installer | `curl` or `wget`, and `python3 -m venv` | Debian and Ubuntu: `sudo apt install python3-venv`. Windows: PowerShell 5.1 or newer |
 | Optional | `wl-copy`, `xclip` or `xsel` on Linux | Only for Ctrl-Y copy id. macOS and Windows have `pbcopy` and `clip` built in |
 
@@ -139,6 +141,8 @@ Environment variables override the file for one run:
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Where Claude Code keeps its transcripts |
 | `CODEX_HOME` | `~/.codex` | Where Codex keeps its rollouts |
 | `HERMES_HOME` | `~/.hermes` | Where Hermes keeps its SQLite store |
+| `COPILOT_HOME` | `~/.copilot` | Where Copilot CLI keeps its session events |
+| `DUCKPOND_VSCODE_DIR` | VS Code's `User` directory for your platform | Where VS Code keeps Copilot Chat sessions (`workspaceStorage/*/chatSessions`) |
 
 ## Scripting
 
@@ -154,14 +158,14 @@ Press Ctrl-O on a session and pick the target agent. The picker writes the conve
 duckpond install-skills
 ```
 
-copies a `SKILL.md` into each installed agent's skills folder (`~/.claude/skills/duckpond`, `~/.codex/skills/duckpond`, `~/.hermes/skills/duckpond`). With it, an agent that receives a handoff knows to read the file and continue rather than start over, knows to point you at Ctrl-O instead of hand-copying context when you ask to switch agents, can answer "what was I working on" from `duckpond list --json`, and can run `duckpond doctor` when something looks off. This is the one thing duckpond writes under an agent's home, it is opt-in, and `duckpond uninstall-skills` removes it. The skill text is in `duckpond/skills/duckpond/SKILL.md`.
+copies a `SKILL.md` into each installed agent's skills folder (`~/.claude/skills/duckpond`, `~/.codex/skills/duckpond`, `~/.hermes/skills/duckpond`, `~/.copilot/skills/duckpond`). With it, an agent that receives a handoff knows to read the file and continue rather than start over, knows to point you at Ctrl-O instead of hand-copying context when you ask to switch agents, can answer "what was I working on" from `duckpond list --json`, and can run `duckpond doctor` when something looks off. This is the one thing duckpond writes under an agent's home, it is opt-in, and `duckpond uninstall-skills` removes it. The skill text is in `duckpond/skills/duckpond/SKILL.md`.
 
 ## Privacy
 
 Your conversations with these agents are some of the most personal data on your computer. duckpond treats them that way.
 
 - **Nothing leaves the machine.** There is no server, no telemetry, no update check and no analytics. The only socket it opens is fzf's control port on `127.0.0.1`, protected by a random key for each launch, which the picker uses to refresh its own list.
-- **Agent stores are read, never written.** Transcript files are opened read-only and the Hermes database is opened in SQLite read-only mode. Hiding a session writes its id to duckpond's own cache. Nothing in `~/.claude`, `~/.codex` or `~/.hermes` is ever modified or deleted, with one opt-in exception: `duckpond install-skills` adds a `skills/duckpond/SKILL.md` folder there and `uninstall-skills` removes it.
+- **Agent stores are read, never written.** Transcript files are opened read-only and the Hermes database is opened in SQLite read-only mode. Hiding a session writes its id to duckpond's own cache. Nothing in `~/.claude`, `~/.codex`, `~/.hermes`, `~/.copilot` or VS Code's storage is ever modified or deleted, with one opt-in exception: `duckpond install-skills` adds a `skills/duckpond/SKILL.md` folder there and `uninstall-skills` removes it.
 - **No credentials.** duckpond does not read, store or pass along any token. Each agent signs in through its own flow. duckpond runs `claude`, `codex` or `hermes` exactly as you would in a shell.
 - **The cache is yours and private.** `~/.cache/duckpond` holds session summaries, previews and any handoff exports. It is created with owner-only permissions (`0700` directory, `0600` files). `sh install.sh --uninstall` offers to remove it, or delete it by hand at any time; duckpond rebuilds it.
 - **Handoffs are explicit.** Pressing Ctrl-O writes one conversation to a markdown file in the cache and opens the agent you chose on it. Which agent sees which conversation is always your keypress.

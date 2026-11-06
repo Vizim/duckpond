@@ -19,7 +19,8 @@ DUCKLING = ['⢀⠀⣰⣻⠦', '⠘⢿⣿⡿⠃']
 BUBBLE_TICKS = 14
 BOXES = ('pond', 'tokens', 'context', 'totals')
 SUPER = '⁰¹²³⁴⁵⁶⁷⁸⁹'
-CTX_TIERS = {'claude': (200_000, 1_000_000), 'codex': (272_000, 400_000, 1_000_000)}
+CTX_TIERS = {'claude': (200_000, 1_000_000), 'codex': (272_000, 400_000, 1_000_000),
+             'copilot': (128_000, 200_000, 1_000_000), 'vscode': (128_000, 200_000, 1_000_000)}
 CTX_DEFAULT = (128_000, 200_000, 400_000, 1_000_000)
 CARD_MIN, CARD_MAX = 28, 56
 PKG = os.path.dirname(os.path.abspath(__file__))
@@ -833,13 +834,15 @@ def run(args):
             sys.exit('usage: duckpond pond [--interval SECONDS] [--once] [--demo]')
     ducks = demo_ducks() if demo else live_ducks()
     st = demo_stats() if demo else stats(sessions.collect().values())
-    net = demo_net(ducks) if demo else Sampler().sample(ducks)
+    net = demo_net(ducks) if demo else Sampler()
+    net.interval = interval
+    if not demo:
+        net.sample(ducks)
     if once:
         size = shutil.get_terminal_size((80, 24))
         sys.stdout.write('\n'.join(screen(ducks, 0, st, net, size.columns, size.lines)[:-2]) + '\n')
         return
     stamp, note, t, due = source_stamp(), None, 0, time.time() + interval
-    net.interval = interval
     stats_due, hidden = time.time() + 10, hidden_boxes()
     sys.stdout.write('\033[?1049h\033[?25l\033[2J')
     try:

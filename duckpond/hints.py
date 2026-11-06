@@ -25,6 +25,8 @@ AGENTS = {
     'claude': ('Claude Code', 'npm install -g @anthropic-ai/claude-code    or see https://code.claude.com/docs/en/overview'),
     'codex': ('Codex', 'npm install -g @openai/codex    or see https://github.com/openai/codex'),
     'hermes': ('Hermes', 'see https://github.com/NousResearch/hermes-agent'),
+    'copilot': ('Copilot CLI', 'npm install -g @github/copilot    or see https://github.com/github/copilot-cli'),
+    'vscode': ('VS Code', 'install VS Code with the GitHub Copilot Chat extension, see https://code.visualstudio.com'),
 }
 
 

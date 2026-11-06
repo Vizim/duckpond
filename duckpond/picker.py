@@ -1,4 +1,4 @@
-"""Pick a recent Claude Code, Codex or Hermes session with fzf and resume it."""
+"""Pick a recent Claude Code, Codex, Hermes, Copilot CLI or VS Code chat session with fzf and resume it."""
 import os
 import re
 import secrets
@@ -21,7 +21,7 @@ def header(rows):
     if real:
         status = f'{len(real)} session{"s" if len(real) != 1 else ""} from {", ".join(agents)}'
     else:
-        status = 'no sessions yet. run claude, codex or hermes once and it will show up here'
+        status = 'no sessions yet. run claude, codex, hermes, copilot or a VS Code chat once and it will show up here'
     return mini([f'{BOLD}duckpond{RESET}  {TAGLINE}', status, '', f'Hit {BOLD}?{RESET} for a help menu or {BOLD}Esc{RESET} to exit.'])
 
 
@@ -34,6 +34,8 @@ COMMANDS = {
                    fork=['claude', '--resume', '{sid}', '--fork-session'], cloud=['claude', '--teleport']),
     'codex': dict(new=['codex'], resume=['codex', 'resume', '{sid}']),
     'hermes': dict(new=['hermes', 'chat'], resume=['hermes', '--resume', '{sid}']),
+    'copilot': dict(new=['copilot'], resume=['copilot', '--resume', '{sid}'], handoff=['copilot', '-i', '{prompt}']),
+    'vscode': dict(new=['code', '-r', '.'], resume=['code', '-r', '.'], handoff=['code', 'chat', '-r', '{prompt}']),
 }
 
 
@@ -169,6 +171,8 @@ def handoff(agent, sid, me_argv, env):
         sessions.copy_text(prompt)
         print(f'Handoff written to {out}\nThe opening prompt is on your clipboard, paste it into hermes.\n')
         return COMMANDS['hermes']['new']
+    if 'handoff' in COMMANDS[target]:
+        return [c.replace('{prompt}', prompt) for c in COMMANDS[target]['handoff']]
     return COMMANDS[target]['new'] + [prompt]
 
 
@@ -187,6 +191,8 @@ def go(agent, sid, where, title):
     except OSError:
         os.chdir(os.path.expanduser('~'))
     print(f"{GREEN}\u25b6{RESET} back to {BOLD}{title}{RESET}  {DIM}{agent} \u00b7 {os.path.basename(where.rstrip(os.sep)) or where}{RESET}")
+    if agent == 'vscode':
+        print(f'{DIM}VS Code cannot open one chat from the command line: pick "{title}" from the chat history once it opens.{RESET}')
     launch([c.replace('{sid}', sid) for c in COMMANDS.get(agent, COMMANDS['claude'])['resume']])
 
 

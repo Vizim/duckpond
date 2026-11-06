@@ -153,9 +153,70 @@ def hermes_db(root, rows, now=None):
     con.close()
 
 
+def copilot_session(root, project, prompts, reply, age_h, now=None, live=False):
+    now = now or time.time()
+    sid = str(uuid.uuid4())
+    d = os.path.join(root, 'copilot', 'session-state', sid)
+    os.makedirs(d, exist_ok=True)
+    t0 = now - age_h * 3600
+    lines = [{'type': 'session.start', 'timestamp': iso(t0), 'data': {
+        'sessionId': sid, 'startTime': iso(t0), 'selectedModel': 'gpt-5', 'context': {'cwd': project}}}]
+    for i, p in enumerate(prompts):
+        ts = t0 + i * 400
+        lines.append({'type': 'user.message', 'timestamp': iso(ts), 'data': {'content': p}})
+        lines.append({'type': 'assistant.turn_start', 'timestamp': iso(ts + 1), 'data': {}})
+        lines.append({'type': 'assistant.message', 'timestamp': iso(ts + 30), 'data': {
+            'content': '', 'toolRequests': [{'toolCallId': f't{i}', 'name': 'bash', 'arguments': {'command': 'npm test'}}]}})
+        lines.append({'type': 'tool.execution_complete', 'timestamp': iso(ts + 40), 'data': {'toolCallId': f't{i}', 'toolName': 'bash', 'result': 'ok'}})
+        lines.append({'type': 'assistant.message', 'timestamp': iso(ts + 60), 'data': {
+            'content': reply if i == len(prompts) - 1 else 'Looking.', 'toolRequests': []}})
+        if not (live and i == len(prompts) - 1):
+            lines.append({'type': 'assistant.turn_end', 'timestamp': iso(ts + 61), 'data': {}})
+    path = os.path.join(d, 'events.jsonl')
+    with open(path, 'w', encoding='utf-8') as fh:
+        for line in lines:
+            fh.write(dumps(line) + '\n')
+    stamp = now - 8 if live else t0 + 1800
+    os.utime(path, (stamp, stamp))
+    return sid
+
+
+def vscode_session(root, project, title, prompts, reply, age_h, now=None):
+    now = now or time.time()
+    sid = str(uuid.uuid4())
+    ws = os.path.join(root, 'vscode', 'workspaceStorage', uuid.uuid4().hex)
+    os.makedirs(os.path.join(ws, 'chatSessions'), exist_ok=True)
+    with open(os.path.join(ws, 'workspace.json'), 'w', encoding='utf-8') as fh:
+        fh.write(dumps({'folder': 'file://' + project}))
+    t0 = now - age_h * 3600
+    def request(i, p, done=True):
+        ts = int((t0 + i * 500) * 1000)
+        parts = [{'kind': 'markdownContent', 'content': {'value': reply if i == len(prompts) - 1 else 'On it.'}}]
+        r = {'requestId': f'request_{i}', 'message': {'text': p, 'parts': []}, 'timestamp': ts, 'modelId': 'gpt-5',
+             'response': parts, 'variableData': {'variables': []}}
+        if done:
+            r['result'] = {'metadata': {}}
+        return r
+    lines = [{'kind': 0, 'v': {'version': 3, 'creationDate': int(t0 * 1000), 'sessionId': sid, 'customTitle': None,
+                               'responderUsername': 'GitHub Copilot', 'requests': [request(0, prompts[0])],
+                               'pendingRequests': [], 'inputState': {}}}]
+    for i, p in enumerate(prompts[1:], 1):
+        lines.append({'kind': 2, 'k': ['requests'], 'v': [request(i, p, done=False)]})
+        lines.append({'kind': 2, 'k': ['requests', i, 'response'], 'v': [{'kind': 'toolInvocationSerialized', 'toolId': 'runInTerminal'}]})
+        lines.append({'kind': 1, 'k': ['requests', i, 'result'], 'v': {'metadata': {}}})
+    if title:
+        lines.append({'kind': 1, 'k': ['customTitle'], 'v': title})
+    path = os.path.join(ws, 'chatSessions', sid + '.jsonl')
+    with open(path, 'w', encoding='utf-8') as fh:
+        for line in lines:
+            fh.write(dumps(line) + '\n')
+    os.utime(path, (t0 + 1200, t0 + 1200))
+    return sid
+
+
 def build(root):
     """Create the full sample set; returns a dict of ids per agent."""
-    ids = {'claude': [], 'codex': [], 'hermes': []}
+    ids = {'claude': [], 'codex': [], 'hermes': [], 'copilot': [], 'vscode': []}
     ids['claude'].append(claude_session(
         root, f'{HOME}/dev/rocket-api', 'Rate limiter returns 429 too early',
         ['the rate limiter is rejecting requests under the limit, find out why',
@@ -185,6 +246,13 @@ def build(root):
     ids['codex'].append(codex_session(
         root, f'{HOME}/dev/bakery-site', ['migrate the contact form to server actions'],
         'The form now posts to a server action with zod validation. Removed the old API route.', 30))
+    ids['copilot'].append(copilot_session(
+        root, f'{HOME}/dev/rocket-api', ['why does the deploy script skip the migrations step'],
+        'The step is gated on CI=true, which the deploy runner never sets.', 1.5, live=True))
+    ids['vscode'].append(vscode_session(
+        root, f'{HOME}/dev/bakery-site', 'Contact form validation',
+        ['the contact form accepts an empty email', 'add a test for it'],
+        'Added an email check and a unit test in contact.test.ts.', 26))
     hermes_rows = [
         ('20261105_224941_dd3d02', f'{HOME}/dev/ledger', 'Check the ledger exports',
          ['use subagents to count lines in words.txt and list the files'], 'Both subagents are running.', 0.1, False),

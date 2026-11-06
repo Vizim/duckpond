@@ -5,7 +5,8 @@ import shutil
 from . import sessions
 
 SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skills', 'duckpond', 'SKILL.md')
-HOMES = {'claude': sessions.CLAUDE_HOME, 'codex': sessions.CODEX_HOME, 'hermes': sessions.HERMES_HOME}
+HOMES = {'claude': sessions.CLAUDE_HOME, 'codex': sessions.CODEX_HOME, 'hermes': sessions.HERMES_HOME,
+         'copilot': sessions.COPILOT_HOME}
 
 
 def targets(agents=None):

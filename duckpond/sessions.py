@@ -17,20 +17,38 @@ CACHE = os.environ.get('DUCKPOND_CACHE') or os.path.join(
     os.environ.get('XDG_CACHE_HOME', os.path.join(HOME, '.cache')), 'duckpond')
 INDEX = os.path.join(CACHE, 'index.json')
 HIDDEN = os.path.join(CACHE, 'hidden.json')
-INDEX_VERSION = 11
+INDEX_VERSION = 12
 CLAUDE_HOME = os.environ.get('CLAUDE_CONFIG_DIR') or os.path.join(HOME, '.claude')
 CODEX_HOME = os.environ.get('CODEX_HOME') or os.path.join(HOME, '.codex')
 HERMES_HOME = os.environ.get('HERMES_HOME') or os.path.join(HOME, '.hermes')
+COPILOT_HOME = os.environ.get('COPILOT_HOME') or os.path.join(HOME, '.copilot')
+
+
+def vscode_user_dir():
+    # VS Code's User directory, where Copilot Chat sessions live under workspaceStorage.
+    if os.environ.get('DUCKPOND_VSCODE_DIR'):
+        return os.environ['DUCKPOND_VSCODE_DIR']
+    if sys.platform == 'win32':
+        return os.path.join(os.environ.get('APPDATA', HOME), 'Code', 'User')
+    if sys.platform == 'darwin':
+        return os.path.join(HOME, 'Library', 'Application Support', 'Code', 'User')
+    return os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.join(HOME, '.config')), 'Code', 'User')
+
+
+VSCODE_USER = vscode_user_dir()
 KEEP_PROMPTS = 40
 KEEP_TIMES = 400
 KEEP_MINUTES = 1500
-CODEX_OPEN_SECONDS = 900
+RECENT_OPEN_SECONDS = 900
+LOCKLESS = ('codex', 'copilot', 'vscode')
 BUSY_SECONDS = 20
 BOLD, DIM, GREEN, RESET = '\033[1m', '\033[2m', '\033[32m', '\033[0m'
 AGENTS = {
     'claude': dict(bin='claude', color='\033[38;5;208m'),
     'codex': dict(bin='codex', color='\033[36m'),
     'hermes': dict(bin='hermes', color='\033[35m'),
+    'copilot': dict(bin='copilot', color='\033[38;5;75m'),
+    'vscode': dict(bin='code', color='\033[38;5;39m'),
 }
 CWD_RE = re.compile(r'"cwd":"([^"]*)"')
 META_RE = re.compile(r'^\{"type":"([a-z-]+)"')
@@ -311,7 +329,111 @@ def codex_feed(s, line, store):
             set_reply(s, text)
 
 
-FEEDS = {'claude': claude_feed, 'codex': codex_feed}
+def copilot_feed(s, line, store):
+    # Copilot CLI events.jsonl: one event per line with type, timestamp and data.
+    if '"type":"' not in line:
+        return
+    try:
+        d = json.loads(line)
+    except ValueError:
+        return
+    t, data, when = d.get('type'), d.get('data') or {}, d.get('timestamp')
+    if t in ('session.start', 'session.resume'):
+        cwd = (data.get('context') or {}).get('cwd')
+        s['root'] = s['root'] or cwd
+        if cwd:
+            s['shell'] = cwd
+        s['started'] = s['started'] or data.get('startTime') or when
+    elif t == 'user.message':
+        add_prompt(s, data.get('content'), when)
+    elif t == 'assistant.turn_start':
+        s['busy'] = True
+    elif t in ('assistant.turn_end', 'session.truncation'):
+        s['busy'] = False
+    elif t == 'assistant.message':
+        set_reply(s, data.get('content'))
+        for req in data.get('toolRequests') or ():
+            if isinstance(req, dict):
+                args = req.get('arguments')
+                detail = ''
+                if isinstance(args, dict):
+                    detail = str(args.get('command') or args.get('path') or args.get('description') or '')
+                s['tool'] = ' '.join([str(req.get('name') or 'tool'), one_line(detail, 70)]).strip()
+
+
+def part_text(part):
+    # The text in one serialized VS Code chat response part, if it has any.
+    if isinstance(part, str):
+        return part
+    if not isinstance(part, dict):
+        return ''
+    kind = part.get('kind')
+    if kind == 'markdownContent':
+        content = part.get('content')
+        return content.get('value', '') if isinstance(content, dict) else str(content or '')
+    if kind is None and isinstance(part.get('value'), str):
+        return part['value']
+    return ''
+
+
+def part_tool(part):
+    if isinstance(part, dict) and part.get('kind') in ('toolInvocationSerialized', 'toolInvocation'):
+        return str(part.get('toolId') or part.get('toolCallId') or 'tool')
+    return None
+
+
+def vscode_request(s, req):
+    msg = req.get('message')
+    text = msg.get('text') if isinstance(msg, dict) else msg
+    add_prompt(s, text, req.get('timestamp'))
+    parts = req.get('response') or []
+    set_reply(s, ''.join(part_text(p) for p in parts))
+    for p in parts:
+        tool = part_tool(p)
+        if tool:
+            s['tool'] = tool
+    s['busy'] = req.get('result') is None
+    s['n'] = s.get('n', 0) + 1
+
+
+def vscode_feed(s, line, store):
+    # VS Code chat sessions are a mutation log: an initial snapshot, then set and push records with paths.
+    try:
+        d = json.loads(line)
+    except ValueError:
+        return
+    kind, k, v = d.get('kind'), d.get('k') or [], d.get('v')
+    if kind == 0 and isinstance(v, dict):
+        s['custom'] = v.get('customTitle') or s['custom']
+        s['started'] = s['started'] or v.get('creationDate')
+        s['root'] = s['root'] or v.get('workingDirectory')
+        s['n'] = 0
+        for req in v.get('requests') or ():
+            if isinstance(req, dict):
+                vscode_request(s, req)
+    elif kind == 1 and k == ['customTitle']:
+        s['custom'] = v
+    elif kind == 2 and k == ['requests']:
+        if d.get('i') is not None:
+            s['n'] = min(s.get('n', 0), d['i'])
+        for req in v or ():
+            if isinstance(req, dict):
+                vscode_request(s, req)
+    elif len(k) >= 3 and k[0] == 'requests' and k[1] == s.get('n', 0) - 1:
+        # Changes to the latest request: a streamed response, its result, or a title set by the user.
+        if k[2] == 'response' and kind == 2 and isinstance(v, list):
+            set_reply(s, (s['reply'] or '') + ''.join(part_text(p) for p in v))
+            for p in v:
+                tool = part_tool(p)
+                if tool:
+                    s['tool'] = tool
+        elif k[2] == 'response' and kind == 1 and len(k) == 3 and isinstance(v, list):
+            set_reply(s, ''.join(part_text(p) for p in v))
+        elif k[2] == 'result' and kind in (1, 2):
+            s['busy'] = False
+
+
+FEEDS = {'claude': claude_feed, 'codex': codex_feed, 'copilot': copilot_feed, 'vscode': vscode_feed}
 
 
 def scan(path, feed, s, pos):
@@ -332,6 +454,12 @@ def transcript_files():
         yield 'claude', path
     for path in glob.glob(os.path.join(CODEX_HOME, 'sessions', '*', '*', '*', '*.jsonl')):
         yield 'codex', path
+    for path in glob.glob(os.path.join(COPILOT_HOME, 'session-state', '*', 'events.jsonl')) + glob.glob(
+            os.path.join(COPILOT_HOME, 'session-state', '*.jsonl')):
+        yield 'copilot', path
+    for path in glob.glob(os.path.join(VSCODE_USER, 'workspaceStorage', '*', 'chatSessions', '*.jsonl')) + glob.glob(
+            os.path.join(VSCODE_USER, 'globalStorage', 'emptyWindowChatSessions', '*.jsonl')):
+        yield 'vscode', path
 
 
 UUID_RE = re.compile(r'^[0-9a-fA-F-]{36}$')
@@ -342,7 +470,22 @@ def file_sid(agent, path, data):
     if agent == 'codex':
         sid = data.get('sid') or ''
         return sid if UUID_RE.match(sid) else name[-36:]
+    if agent == 'copilot' and name == 'events':
+        return os.path.basename(os.path.dirname(path))
     return name
+
+
+def vscode_root(path):
+    # The workspace a VS Code chat belongs to is in workspace.json beside its chatSessions folder.
+    meta = os.path.join(os.path.dirname(os.path.dirname(path)), 'workspace.json')
+    folder = load_json(meta, {}).get('folder') or ''
+    if folder.startswith('file://'):
+        from urllib.parse import unquote, urlparse
+        p = unquote(urlparse(folder).path)
+        if sys.platform == 'win32' and re.match(r'^/[A-Za-z]:', p):
+            p = p[1:]
+        return p
+    return folder or HOME
 
 
 def load_json(path, default):
@@ -393,6 +536,8 @@ def collect_files(old, new):
             data, pos = scan(path, FEEDS[agent], state, pos)
         except OSError:
             continue
+        if agent == 'vscode' and not data['root']:
+            data['root'] = vscode_root(path)
         new[path] = dict(v=INDEX_VERSION, key=key, pos=pos, data=data, agent=agent,
                          sid=file_sid(agent, path, data), mtime=st.st_mtime)
         save_json(INDEX, {**old, **new})
@@ -678,6 +823,48 @@ def codex_turns(path):
     return turns or fallback
 
 
+def copilot_turns(path):
+    for raw in open(path, 'rb'):
+        try:
+            d = json.loads(raw.decode('utf-8', 'ignore'))
+        except ValueError:
+            continue
+        data = d.get('data') or {}
+        if d.get('type') == 'user.message' and (data.get('content') or '').strip():
+            yield 'user', data['content'].strip()
+        elif d.get('type') == 'assistant.message' and (data.get('content') or '').strip():
+            yield 'assistant', data['content'].strip()
+
+
+def vscode_turns(path):
+    requests = []
+    for raw in open(path, 'rb'):
+        try:
+            d = json.loads(raw.decode('utf-8', 'ignore'))
+        except ValueError:
+            continue
+        kind, k, v = d.get('kind'), d.get('k') or [], d.get('v')
+        if kind == 0 and isinstance(v, dict):
+            requests = [r for r in v.get('requests') or () if isinstance(r, dict)]
+        elif kind == 2 and k == ['requests']:
+            if d.get('i') is not None:
+                del requests[d['i']:]
+            requests += [r for r in v or () if isinstance(r, dict)]
+        elif len(k) == 3 and k[0] == 'requests' and k[2] == 'response' and isinstance(k[1], int) and k[1] < len(requests):
+            if kind == 2:
+                requests[k[1]]['response'] = list(requests[k[1]].get('response') or []) + list(v or [])
+            elif kind == 1:
+                requests[k[1]]['response'] = v
+    for r in requests:
+        msg = r.get('message')
+        text = (msg.get('text') if isinstance(msg, dict) else msg) or ''
+        if text.strip():
+            yield 'user', text.strip()
+        reply = ''.join(part_text(p) for p in r.get('response') or [])
+        if reply.strip():
+            yield 'assistant', reply.strip()
+
+
 def hermes_turns(sid):
     con = sqlite3.connect(Path(os.path.join(HERMES_HOME, 'state.db')).as_uri() + '?mode=ro', uri=True)
     rows = con.execute("select role, content from messages where session_id = ? and role in ('user', 'assistant')"
@@ -696,6 +883,10 @@ def export_markdown(agent, sid, out, limit=200000):
         turns = list(claude_turns(path))
     elif agent == 'codex':
         turns = codex_turns(path)
+    elif agent == 'copilot':
+        turns = list(copilot_turns(path))
+    elif agent == 'vscode':
+        turns = list(vscode_turns(path))
     else:
         turns = hermes_turns(sid)
     body, total = [], 0
@@ -747,9 +938,9 @@ def session_rows(terms, live, hidden):
         age = time.time() - ent['mtime']
         if agent == 'claude' and sid in live:
             status = live[sid]['status']
-        elif d.get('open') or (agent == 'codex' and age < CODEX_OPEN_SECONDS):
-            # Codex and Hermes leave no lock file: recent writes mean open; a turn in progress or a very recent write means busy.
-            status = 'busy' if age < BUSY_SECONDS or (agent == 'codex' and d.get('busy')) else 'open'
+        elif d.get('open') or (agent in LOCKLESS and age < RECENT_OPEN_SECONDS):
+            # No lock file for these: recent writes mean open; a turn in progress or a very recent write means busy.
+            status = 'busy' if age < BUSY_SECONDS or (agent in LOCKLESS and d.get('busy')) else 'open'
         # A cd you typed wins, then the directory a live session was launched from, then the project.
         launched = (live.get(sid) or {}).get('cwd') if agent == 'claude' else None
         where = d['shell'] or launched or d['root']
@@ -827,7 +1018,9 @@ def doctor():
     print(f"terminal   {config.get('terminal') or 'auto'}    (duckpond config terminal \"...\" to change)")
     stores = [('claude', CLAUDE_HOME, os.path.join(CLAUDE_HOME, 'projects', '*', '*.jsonl')),
               ('codex', CODEX_HOME, os.path.join(CODEX_HOME, 'sessions', '*', '*', '*', '*.jsonl')),
-              ('hermes', HERMES_HOME, os.path.join(HERMES_HOME, 'state.db'))]
+              ('hermes', HERMES_HOME, os.path.join(HERMES_HOME, 'state.db')),
+              ('copilot', COPILOT_HOME, os.path.join(COPILOT_HOME, 'session-state', '*', 'events.jsonl')),
+              ('vscode', VSCODE_USER, os.path.join(VSCODE_USER, 'workspaceStorage', '*', 'chatSessions', '*.jsonl'))]
     found = installed()
     for agent, home, pattern in stores:
         exe = shutil.which(AGENTS[agent]['bin']) or f'not on PATH. {hints.agent_hint(agent).split(". ", 1)[1]}'

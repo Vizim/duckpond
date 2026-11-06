@@ -16,6 +16,8 @@ def stores(tmp_path, monkeypatch):
     monkeypatch.setenv('CLAUDE_CONFIG_DIR', os.path.join(root, 'claude'))
     monkeypatch.setenv('CODEX_HOME', os.path.join(root, 'codex'))
     monkeypatch.setenv('HERMES_HOME', os.path.join(root, 'hermes'))
+    monkeypatch.setenv('COPILOT_HOME', os.path.join(root, 'copilot'))
+    monkeypatch.setenv('DUCKPOND_VSCODE_DIR', os.path.join(root, 'vscode'))
     monkeypatch.setenv('DUCKPOND_CACHE', str(tmp_path / 'cache'))
     from duckpond import sessions
     importlib.reload(sessions)

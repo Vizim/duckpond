@@ -19,6 +19,7 @@ def test_lists_every_agent_newest_first(stores, capsys):
     rows = [r for r in listing(stores['sessions'], capsys) if not r[1].startswith('__')]
     agents = [r[0] for r in rows]
     assert agents.count('claude') == 5 and agents.count('codex') == 2 and agents.count('hermes') == 3
+    assert agents.count('copilot') == 1 and agents.count('vscode') == 1
     assert agents[0] == 'claude' and 'Rate limiter' in rows[0][3]
     assert rows[0][2] == '/home/ada/dev/rocket-api'
 
@@ -79,7 +80,7 @@ def test_hide_and_unhide(stores, capsys):
 def test_export_markdown_has_turns(stores, tmp_path, capsys):
     s = stores['sessions']
     listing(s, capsys)
-    for agent in ('claude', 'codex', 'hermes'):
+    for agent in ('claude', 'codex', 'hermes', 'copilot', 'vscode'):
         out = tmp_path / f'{agent}.md'
         s.main(['export', agent, stores['ids'][agent][0], str(out)])
         text = out.read_text(encoding='utf-8')
@@ -99,7 +100,7 @@ def test_json_output(stores, capsys):
     s = stores['sessions']
     s.main(['list', '--json'])
     rows = json.loads(capsys.readouterr().out)
-    assert len(rows) == 10
+    assert len(rows) == 12
     assert {'agent', 'id', 'dir', 'title', 'last_active', 'prompts'} <= set(rows[0])
 
 
@@ -132,7 +133,7 @@ def test_doctor_runs(stores, capsys):
     with pytest.raises(SystemExit):
         s.main(['doctor'])
     out = capsys.readouterr().out
-    assert 'sessions   10 listed' in out and 'cache' in out
+    assert 'sessions   12 listed' in out and 'cache' in out
 
 
 def test_typed_cd_moves_the_resume_directory(stores, capsys):
@@ -162,6 +163,9 @@ def test_tool_tracking_and_newest(stores):
     codex = [e for e in sessions.collect().values() if e['agent'] == 'codex']
     assert codex and all(e['data']['tool'] == 'shell bash -lc redis-cli ping' for e in codex)
     for e in sessions.collect().values():
+        if e['agent'] in ('copilot', 'vscode'):
+            assert e['data']['tok'] == []
+            continue
         tok = e['data']['tok']
         assert tok and all(len(m) == 4 for m in tok)
         if e['agent'] == 'claude':
@@ -203,3 +207,18 @@ def test_codex_and_hermes_status_from_activity(stores):
     live = [d for _, agent, sid, where, d, status in rows if agent == 'hermes' and status]
     assert [v[0] for v in live[0]['subagents'].values()] == ['count the lines in words.txt']
     assert live[0]['tool'] == 'terminal' and live[0]['tok'] == [[live[0]['tok'][0][0], 3000, 500, 1000]] and live[0]['ctx'] == 4000
+
+
+def test_copilot_and_vscode_backends(stores):
+    from duckpond import sessions
+    rows, _ = sessions.session_rows([], sessions.live_claude(), set())
+    cop = [(d, status, where) for _, agent, sid, where, d, status in rows if agent == 'copilot']
+    vs = [(d, status, where) for _, agent, sid, where, d, status in rows if agent == 'vscode']
+    assert len(cop) == 1 and len(vs) == 1
+    d, status, where = cop[0]
+    assert status == 'busy' and d['busy'] and where == '/home/ada/dev/rocket-api' and d['tool'] == 'bash npm test'
+    assert d['prompts'] == ['why does the deploy script skip the migrations step'] and d['reply'].startswith('The step is gated')
+    d, status, where = vs[0]
+    assert status is None and where == '/home/ada/dev/bakery-site' and sessions.title(d) == 'Contact form validation'
+    assert d['turns'] == 2 and d['tool'] == 'runInTerminal' and d['busy'] is False and d['reply'].startswith('Added an email check')
+    assert d['times'] and all(t > 1_600_000_000 for t in d['times'])

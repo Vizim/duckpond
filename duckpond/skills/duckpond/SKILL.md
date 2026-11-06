@@ -1,6 +1,6 @@
 ---
 name: duckpond
-description: "Use when the user mentions duckpond, a handoff file, resuming or finding an earlier AI session, moving a conversation to another agent (Claude Code, Codex, Hermes), or asks what sessions exist on this machine. duckpond is a local picker that indexes every agent's sessions and exports conversations as markdown."
+description: "Use when the user mentions duckpond, a handoff file, resuming or finding an earlier AI session, moving a conversation to another agent (Claude Code, Codex, Hermes, Copilot CLI, VS Code), or asks what sessions exist on this machine. duckpond is a local picker that indexes every agent's sessions and exports conversations as markdown."
 version: 0.3.0
 license: MIT
 platforms: [linux, macos, windows]
@@ -11,7 +11,7 @@ metadata:
 
 # duckpond
 
-duckpond is a local command (`duckpond`, alias `aisp`) that lists every Claude Code, Codex and Hermes session on this machine, resumes the one the user picks, and hands conversations between agents. Everything is local. It only reads the agents' own session stores and writes to its own cache in `~/.cache/duckpond`.
+duckpond is a local command (`duckpond`, alias `aisp`) that lists every Claude Code, Codex, Hermes, Copilot CLI and VS Code Copilot Chat session on this machine, resumes the one the user picks, and hands conversations between agents. Everything is local. It only reads the agents' own session stores and writes to its own cache in `~/.cache/duckpond`.
 
 ## When you are the receiving agent
 
@@ -64,5 +64,5 @@ Only do this when asked; starting an interactive agent takes over the terminal.
 ## Privacy rules to respect
 
 - Never upload, paste online or send a handoff file anywhere. It is the user's private conversation.
-- Never edit files under `~/.claude`, `~/.codex` or `~/.hermes` on duckpond's behalf; duckpond itself never writes there.
+- Never edit files under `~/.claude`, `~/.codex`, `~/.hermes`, `~/.copilot` or VS Code's storage on duckpond's behalf; duckpond itself never writes there.
 - The cache is safe to delete; duckpond rebuilds it.
