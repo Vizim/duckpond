@@ -328,11 +328,12 @@ def stretch(values, n):
     return [values[min(len(values) - 1, i * len(values) // n)] for i in range(n)]
 
 
-def scaled(values, log=False):
-    # Normalise to 0..1; log compresses the bursts so small replies still show.
+def scaled(values, log=False, top=None):
+    # Normalise to 0..1; log compresses the bursts so small replies still show. A shared top syncs two graphs.
     if log:
         values = [math.log1p(max(0.0, v)) for v in values]
-    top = max(values) if values else 0
+        top = math.log1p(top) if top else None
+    top = top if top is not None else (max(values) if values else 0)
     return [v / top for v in values] if top else [0.0 for _ in values]
 
 
@@ -628,11 +629,13 @@ def lower(st, net, width, height, hidden=()):
     graph_h = height - 3
     top_h = graph_h // 2
     gw = max(2, left_w - 4)
-    up = braille_graph(scaled(net.tin[-gw * 2:], log=True), gw, top_h)
+    tin, tout = net.tin[-gw * 2:], net.tout[-gw * 2:]
+    top = max(tin + tout) if tin or tout else 0
+    up = braille_graph(scaled(tin, log=True, top=top), gw, top_h)
     divider = clip(f'{GREEN}▼ in{RESET}{BORDER}' + '─' * max(0, gw - 11) + f'{RESET}{CYAN}▲ out{RESET}', gw)
-    down = [vflip(line) for line in reversed(braille_graph(scaled(net.tout[-gw * 2:], log=True), gw, max(1, graph_h - top_h - 1), GRADIENT_OUT))]
+    down = [vflip(line) for line in reversed(braille_graph(scaled(tout, log=True, top=top), gw, max(1, graph_h - top_h - 1), GRADIENT_OUT))]
     axis = (f'{GREEN}▼ in{RESET} {human(net.rate_in)}/s   {CYAN}▲ out{RESET} {human(net.rate_out * 60)}/m'
-            f'   {DIM}log scale · 1 min averages · last {gw * 2 * net.interval:g}s{RESET}')
+            f'   {DIM}one log scale · 1 min averages · last {gw * 2 * net.interval:g}s{RESET}')
     tokens = box('tokens', up + [divider] + down + [axis], left_w, height, num=2,
                  right=f"today {human(st['tin_today'])} in · {human(st['tout_today'])} out")
     bw = max(2, mid_w - 4)

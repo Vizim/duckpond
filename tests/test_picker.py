@@ -240,6 +240,9 @@ def test_pond_btop_panels():
     assert pond.scaled([0, 1, 3]) == [0.0, 1 / 3, 1.0] and pond.scaled([]) == [] and pond.scaled([0, 0]) == [0.0, 0.0]
     lg = pond.scaled([0, 1, 1000], log=True)
     assert lg[0] == 0.0 and lg[2] == 1.0 and 0.09 < lg[1] < 0.11
+    synced = pond.scaled([0, 1000], log=True, top=1000) + pond.scaled([10], log=True, top=1000)
+    assert synced[1] == 1.0 and 0.3 < synced[2] < 0.4
+    assert any('one log scale' in line for line in tall)
     assert any('▼ in' in line and 'log scale' in line for line in tall)
     assert any('▲900/m' in line for line in tall)
     for w in range(96, 110):
