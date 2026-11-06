@@ -1,3 +1,5 @@
+import subprocess
+import time
 import json
 import os
 import re
@@ -223,7 +225,7 @@ def test_copilot_and_vscode_backends(stores, monkeypatch):
     assert d['prompts'] == ['why does the deploy script skip the migrations step'] and d['reply'].startswith('The step is gated')
     d, status, where = vs[0]
     assert status is None and where == '/home/ada/dev/bakery-site' and sessions.title(d) == 'Contact form validation'
-    monkeypatch.setattr(sessions, 'vscode_open_workspaces', lambda: {'/home/ada/dev/bakery-site'})
+    monkeypatch.setattr(sessions, 'vscode_open_workspaces', lambda: {'bakery-site'})
     rows, _ = sessions.session_rows([], sessions.live_claude(), set())
     assert [status for _, agent, sid, where, dd, status in rows if agent == 'vscode'] == ['open']
     assert sessions.vscode_shown_chat(d['ws']) == stores['ids']['vscode'][0]
@@ -235,15 +237,18 @@ def test_copilot_and_vscode_backends(stores, monkeypatch):
     assert sum(m[1] for m in d['tok']) == 26000 and sum(m[2] for m in d['tok']) == 1500 and d['ctx'] == 26000
 
 
-def test_vscode_open_folders(stores, tmp_path, monkeypatch):
+def test_vscode_open_folders(stores, monkeypatch):
     from duckpond import sessions
     import json
-    root = os.path.join(sessions.VSCODE_USER, 'globalStorage')
-    os.makedirs(root, exist_ok=True)
-    with open(os.path.join(root, 'storage.json'), 'w') as fh:
-        json.dump({'backupWorkspaces': {'folders': [{'folderUri': 'file:///home/ada/dev/bakery%20site'}],
-                                        'workspaces': [], 'emptyWindows': [{'backupFolder': 'x'}]}}, fh)
+    text = ("CPU: x\nWorkspace Stats: \n|  Window (● README.md - duckpond - Visual Studio Code)\n|    Folder (duckpond): 118 files\n"
+            "|      File types: py(34)\n|  Window (bakery site - Visual Studio Code)\n|    Folder (bakery site): 3 files\n")
+    assert sessions.parse_vscode_status(text) == (2, {'duckpond', 'bakery site'})
+    assert sessions.parse_vscode_status('nothing') == (0, set())
     monkeypatch.setattr(sessions, 'pid_any', lambda name: True)
-    assert sessions.vscode_open_folders() == {'/home/ada/dev/bakery site', ''}
+    monkeypatch.setattr(subprocess, 'Popen', lambda *a, **k: None)
+    sessions.save_json(sessions.VSCODE_WINDOWS, dict(at=time.time(), windows=1, names=['bakery-site']))
+    assert sessions.vscode_open_folders() == {'bakery-site'}
+    sessions.save_json(sessions.VSCODE_WINDOWS, dict(at=time.time() - 3600, windows=1, names=['bakery-site']))
+    assert sessions.vscode_open_folders() == set()
     monkeypatch.setattr(sessions, 'pid_any', lambda name: False)
     assert sessions.vscode_open_folders() == set()

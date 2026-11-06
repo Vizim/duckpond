@@ -717,24 +717,54 @@ def uri_path(uri):
     return os.path.normpath(path)
 
 
+VSCODE_WINDOWS = os.path.join(CACHE, 'vscode-windows.json')
+_VSCODE_ASKED = [0.0]
+STATUS_RE = re.compile(r'^\|\s+(Window|Folder) \((.*)\)', re.M)
+
+
+def parse_vscode_status(text):
+    # Folder names from `code --status`: one "Window (...)" line per window, then its "Folder (name)" lines.
+    names = set()
+    windows = 0
+    for kind, value in STATUS_RE.findall(text.split('Workspace Stats', 1)[-1]):
+        if kind == 'Window':
+            windows += 1
+        else:
+            names.add(value.split('):')[0].strip())
+    return windows, names
+
+
+def refresh_vscode_windows():
+    # Ask VS Code which windows are open and cache the answer; takes a couple of seconds, so never on the hot path.
+    exe = shutil.which('code')
+    windows, names = 0, set()
+    if exe:
+        try:
+            out = subprocess.run([exe, '--status'], capture_output=True, text=True, timeout=20).stdout
+            windows, names = parse_vscode_status(out)
+        except (OSError, subprocess.SubprocessError):
+            pass
+    save_json(VSCODE_WINDOWS, dict(at=time.time(), windows=windows, names=sorted(names)))
+    return windows, names
+
+
 def vscode_open_folders():
-    # Folders with a VS Code window open right now: VS Code keeps this list for hot exit and updates it
-    # as windows open and close. Empty when VS Code is not running at all.
+    # Folder names with a VS Code window open, from the cached `code --status` answer. A missing or old
+    # cache is refreshed in the background, so a listing never waits on VS Code.
     if not pid_any('code' if sys.platform != 'darwin' else 'Electron'):
         return set()
-    reg = load_json(os.path.join(VSCODE_USER, 'globalStorage', 'storage.json'), {}).get('backupWorkspaces') or {}
-    out = set()
-    for entry in reg.get('folders') or []:
-        uri = entry.get('folderUri') if isinstance(entry, dict) else entry
-        if isinstance(uri, str) and uri.startswith('file://'):
-            out.add(uri_path(uri))
-    for entry in reg.get('workspaces') or []:
-        uri = (entry.get('configURIPath') if isinstance(entry, dict) else entry) or ''
-        if isinstance(uri, str) and uri.startswith('file://'):
-            out.add(uri_path(uri))
-    if reg.get('emptyWindows'):
-        out.add('')
-    return out
+    cached = load_json(VSCODE_WINDOWS, {})
+    age = time.time() - (cached.get('at') or 0)
+    if age > 30 and time.time() - _VSCODE_ASKED[0] > 30:
+        _VSCODE_ASKED[0] = time.time()
+        try:
+            subprocess.Popen([sys.executable, '-m', 'duckpond.cli', 'vscode-windows'], stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, start_new_session=True)
+        except OSError:
+            pass
+    if age > 600:
+        return set()
+    return set(cached.get('names') or [])
 
 
 def vscode_open_workspaces():
@@ -1036,8 +1066,7 @@ def session_rows(terms, live, hidden):
             # A VS Code chat is open while a live window is showing it; busy while a request has no result yet.
             if vscode_open is None:
                 vscode_open = vscode_open_workspaces()
-            folder = '' if d.get('ws') == 'emptyWindowChatSessions' else os.path.normpath(d['root'] or '')
-            live_window = folder in vscode_open
+            live_window = os.path.basename(os.path.normpath(d['root'] or '')) in vscode_open
             if live_window and d.get('busy') and age < 3600:
                 status = 'busy'
             elif live_window and d.get('ws') and vscode_shown_chat(d['ws']) == sid:

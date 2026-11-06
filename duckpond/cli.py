@@ -68,6 +68,10 @@ def main():
         return
     if args[0] == 'pond':
         return pond.run(args[1:])
+    if args == ['vscode-windows']:
+        windows, names = sessions.refresh_vscode_windows()
+        print(f"{windows} window{'s' if windows != 1 else ''}: {', '.join(sorted(names)) or 'none'}")
+        return
     if args[0] == 'last':
         row = sessions.newest(args[1:])
         if not row:
