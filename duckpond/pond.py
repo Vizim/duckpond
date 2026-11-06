@@ -636,7 +636,8 @@ def source_stamp():
     for name in os.listdir(PKG):
         if name.endswith('.py'):
             try:
-                out[name] = os.stat(os.path.join(PKG, name)).st_mtime_ns
+                st = os.stat(os.path.join(PKG, name))
+                out[name] = (st.st_mtime_ns, st.st_size)
             except OSError:
                 pass
     return out

@@ -112,11 +112,15 @@ def test_pond_time_helpers_and_source_guard(tmp_path, monkeypatch):
     monkeypatch.setattr(pond, 'HOME', '/home/ada')
     assert pond.tilde('/home/ada/code') == '~/code' and pond.tilde('/srv/x') == '/srv/x'
     monkeypatch.setattr(pond, 'PKG', str(tmp_path))
+    import os
     (tmp_path / 'a.py').write_text('x = 1\n')
+    os.utime(tmp_path / 'a.py', ns=(1_000_000_000_000, 1_000_000_000_000))
     before = pond.source_stamp()
     (tmp_path / 'a.py').write_text('x = (\n')
+    os.utime(tmp_path / 'a.py', ns=(2_000_000_000_000, 2_000_000_000_000))
     assert 'a.py' in pond.source_ok(before, pond.source_stamp())
     (tmp_path / 'a.py').write_text('x = 2\n')
+    os.utime(tmp_path / 'a.py', ns=(3_000_000_000_000, 3_000_000_000_000))
     assert pond.source_ok(before, pond.source_stamp()) is None
 
 
