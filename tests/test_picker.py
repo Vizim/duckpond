@@ -269,11 +269,19 @@ def test_pond_btop_panels():
     s.sample([a], now=1000.0)
     a['tin'], a['tout'], a['cost'] = 700, 70, 1.02
     s.sample([a], now=1002.0)
-    assert a['rate'] == (300.0, 30.0) and s.tin[-1] == 300.0 and s.busy == [1.0, 1.0]
-    assert a['worked'] == (2.0, 2.0) and abs(s.burn[-1] - 36.0) < 1e-6
+    assert a['rate'] == (10.0, 1.0) and s.tin[-1] == 10.0 and s.busy == [1.0, 1.0]
+    assert a['worked'] == (2.0, 2.0) and abs(s.burn[-1] - 1.2) < 1e-6
     s.sample([a], now=1030.0)
-    assert a['rate'] == (20.0, 2.0) and abs(s.burn[-1] - 2.4) < 1e-6
+    assert a['rate'] == (10.0, 1.0) and abs(s.burn[-1] - 1.2) < 1e-6
     s.sample([a], now=1070.0)
     assert a['rate'] == (0.0, 0.0) and s.burn[-1] == 0.0
     s.sample([], now=1003.0)
     assert s.hist == {} and s.rate_in == 0.0
+    s2 = pond.Sampler()
+    seeded = dict(sid='b', tin=6000, tout=600, cached=0, status='busy', cost=0.0, ctx=1000,
+                  recent=[[5000 * 60 - 120, 3000, 300, 0], [5000 * 60 - 60, 3000, 300, 0]])
+    s2.sample([seeded], now=5000 * 60.0)
+    assert len(s2.tin) == 400 and s2.tin[-1] == 50.0 and s2.tout[-1] == 5.0 and s2.tin[-130] == 0.0
+    assert seeded['rate'] == (50.0, 5.0) and s2.ctx[-1] == 1000.0
+    s2.sample([seeded], now=5000 * 60.0 + 30)
+    assert seeded['rate'] == (50.0, 5.0)

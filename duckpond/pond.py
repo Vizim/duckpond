@@ -72,6 +72,7 @@ def live_ducks():
                         since=to_epoch(lock.get('since')) or mtime,
                         started=to_epoch(lock.get('started')) or to_epoch(d['started']),
                         tin=sum(m[1] for m in d.get('tok') or ()), tout=sum(m[2] for m in d.get('tok') or ()),
+                        recent=[m for m in (d.get('tok') or ())[-30:]],
                         cached=sum(m[3] if len(m) > 3 else 0 for m in d.get('tok') or ()), ctx=d.get('ctx') or 0,
                         ctx_limit=d.get('ctx_limit') or 0,
                         prompt=d['prompts'][-1] if d['prompts'] else '', reply=d['reply'] or ''))
@@ -531,9 +532,31 @@ class Sampler:
         self.rate_in = self.rate_out = 0.0
         self.interval = 1.0
 
+    def seed(self, ducks, now):
+        # First sample: rebuild the last few minutes from the index's per-minute buckets so the
+        # graph and rates do not start from nothing every time the pond opens.
+        samples = 400
+        self.tin, self.tout = [0.0] * samples, [0.0] * samples
+        for duck in ducks:
+            last_in = last_out = 0
+            for minute, tin, tout, *_ in duck.get('recent') or ():
+                for i in range(samples):
+                    at = now - (samples - 1 - i) * self.interval
+                    if minute <= at < minute + 60:
+                        self.tin[i] += tin / 60.0
+                        self.tout[i] += tout / 60.0
+                if minute + 60 > now - self.WINDOW:
+                    last_in += tin
+                    last_out += tout
+            if last_in or last_out:
+                self.hist[duck['sid']] = [(now, last_in, last_out, 0.0)]
+        self.ctx = [float(sum(d.get('ctx') or 0 for d in ducks))] * samples
+        self.started = now - self.WINDOW
+
     def sample(self, ducks, now=None):
         now = now or time.time()
-        self.started = self.started or now
+        if self.started is None:
+            self.seed(ducks, now)
         self.ducks = list(ducks)
         span = max(1.0, min(self.WINDOW, now - self.started))
         total_in = total_out = spend = 0.0
@@ -545,6 +568,8 @@ class Sampler:
             hist = self.hist.setdefault(sid, [])
             if prev:
                 hist.append((now, max(0, fresh - prev[0]), max(0, duck['tout'] - prev[1]), max(0.0, cost - prev[2])))
+            elif hist:
+                hist[-1] = (now, hist[-1][1], hist[-1][2], hist[-1][3])
             while hist and now - hist[0][0] > self.WINDOW:
                 hist.pop(0)
             rin = sum(h[1] for h in hist) / span
