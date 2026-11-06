@@ -13,10 +13,10 @@ Type to search. Ctrl-P shows the whole transcript:
 ![searching for rocket with the full transcript in the preview](docs/search.svg)
 
 - Run `duckpond pond` on a second screen to keep an eye on your agents. The dashboard shows running agents in a pond at the top, with panels below for token rates, context use and totals.
-- The token graph shows one-minute averages—tokens in per second and tokens out per minute—on a log scale. The context panel graphs usage and shows each session against its 200k or 1M context window.
+- The token graph shows one-minute averages, tokens in per second and tokens out per minute, on a log scale. The context panel graphs usage and shows each session against its 200k or 1M context window.
 - Totals include sessions, prompts, tokens and cost for today and all time, cache hit rate, each agent's share of output, and today's cost, prompts and output per active hour.
 - Each running agent gets a card showing its status, how long it has been running and how active it was in the last ten minutes. Cards also show the session title, directory and branch, uptime, prompts, cost, cache hit rate, token counts and live rates, a sparkline, child sessions, the current tool and your last prompt.
-- On short terminals, cards show only status, title, tokens and tool. Press 1–4 to toggle the pond, token, context and totals panels; the others reflow to use the available space, and your choices are remembered.
+- On short terminals, cards show only status, title, tokens and tool. Press 1 to 4 to toggle the pond, token, context and totals panels; the others reflow to use the available space, and your choices are remembered.
 - Use `+` and `-` to adjust the refresh interval, `r` to refresh, and `q` or Esc to quit. Run `duckpond last` to resume your newest session:
 
 ![duckpond pond showing three running agents as ducks](docs/pond.svg)
