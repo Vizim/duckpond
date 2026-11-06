@@ -12,8 +12,6 @@ Type to search. Ctrl-P shows the whole transcript:
 
 ![searching for rocket with the full transcript in the preview](docs/search.svg)
 
-A VS Code chat shows as open while a VS Code window is showing it, and busy while Copilot is still answering. To know which windows are open, duckpond runs `code --status` in the background at most every 30 seconds while VS Code is running; that is the one command it runs that belongs to an agent. Resuming a VS Code chat opens the workspace in VS Code and tells you which chat to pick from its history, since VS Code has no command-line way to open one chat. Handing off to VS Code runs `code chat` with the opening prompt; handing off to Copilot CLI starts it with the prompt.
-
 - Run `duckpond pond` on a second screen to keep an eye on your agents. The dashboard shows running agents in a pond at the top, with panels below for token rates, context use and totals.
 - The token graph shows one-minute averages—tokens in per second and tokens out per minute—on a log scale. The context panel graphs usage and shows each session against its 200k or 1M context window.
 - Totals include sessions, prompts, tokens and cost for today and all time, cache hit rate, each agent's share of output, and today's cost, prompts and output per active hour.
