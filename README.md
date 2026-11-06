@@ -75,6 +75,8 @@ The whole point is that it costs almost nothing to have around.
 | Ctrl-T | List cloud sessions for that row's directory (`claude --teleport`) |
 | Ctrl-X | Hide the row |
 | Ctrl-U | Unhide everything |
+| Alt-X | Hide every session, after a y/n prompt (nothing is deleted) |
+| Alt-R | Rebuild the index from scratch, after a y/n prompt |
 | Ctrl-Y | Copy the session id |
 | Ctrl-R | Refresh |
 | ? | The guide, inside the picker (F1 works too) |

@@ -1059,6 +1059,16 @@ def newest(terms):
     return rows[0] if rows else None
 
 
+def rebuild():
+    # Throw the index and previews away; the next listing rescans every store from the first byte.
+    for name in os.listdir(CACHE) if os.path.isdir(CACHE) else []:
+        if name == 'index.json' or name.endswith('.txt'):
+            try:
+                os.remove(os.path.join(CACHE, name))
+            except OSError:
+                pass
+
+
 def session_rows(terms, live, hidden):
     rows, known = [], set()
     vscode_open = None
@@ -1192,6 +1202,8 @@ USAGE = """duckpond                       pick a session and resume it
 duckpond --window              same, in a new terminal window
 duckpond list [--json] [words]  print the session list (words filter it)
 duckpond doctor                check agents, stores, fzf and the cache
+duckpond hide-all | unhide-all       hide every session (nothing is deleted) | show them all again
+duckpond rebuild                     drop the index and rescan everything on the next listing
 duckpond pond [--interval S] [--once|--demo]  the btop-style heads-up display
 duckpond config [KEY [VALUE]]  show or change settings, e.g. duckpond config terminal "alacritty -e"
 duckpond install-launcher      add an "AI Sessions" app with an icon to this desktop
@@ -1221,6 +1233,11 @@ def main(argv=None):
         return save_json(HIDDEN, sorted(set(load_json(HIDDEN, [])) | {f'{rest[0]}:{rest[1]}'}))
     if cmd == 'unhide-all':
         return save_json(HIDDEN, [])
+    if cmd == 'hide-all':
+        known = {f"{e['agent']}:{e['sid']}" for e in collect().values()}
+        return save_json(HIDDEN, sorted(set(load_json(HIDDEN, [])) | known))
+    if cmd == 'rebuild':
+        return rebuild()
     if cmd == 'preview':
         ids = [a for a in rest if not a.startswith('--')]
         return show_preview(ids[0], ids[1], '--full' in rest)

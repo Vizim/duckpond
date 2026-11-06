@@ -15,6 +15,7 @@
 - Codex: a turn in progress (task_started without task_complete) counts as busy, the context window comes from Codex's own token_count events, and shell, custom and local shell tool calls all show on the card.
 - Codex and Hermes sessions written to in the last 15 minutes count as open, and in the last 20 seconds as busy, so they appear in the pond and get the dot in the picker.
 - `duckpond pond --interval S` sets the refresh interval from the shell.
+- Picker: Alt-X hides every session and Alt-R rebuilds the index, each after a y/n prompt on the terminal; `duckpond hide-all` and `duckpond rebuild` do the same from the shell.
 - `duckpond last [words]` resumes the most recent session, optionally the most recent one matching the words.
 - The index now records the tool each session last called, its running subagents, prompt timestamps, tokens in, out and cached per minute, and the current context size (index v14, rebuilt automatically).
 - SECURITY.md and an expanded privacy section.

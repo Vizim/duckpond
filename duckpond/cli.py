@@ -17,6 +17,23 @@ def terminal():
         return sys.stdout, sys.stdin
 
 
+def ask(question, then):
+    # A y/n prompt on the terminal itself, for actions the picker should not do by accident.
+    out, inp = terminal()
+    out.write(f'\n{question} [y/N] ')
+    out.flush()
+    try:
+        answer = inp.readline().strip().lower()
+    except (OSError, KeyboardInterrupt):
+        answer = ''
+    if answer in ('y', 'yes'):
+        sessions.main(then)
+        out.write('done\n')
+    else:
+        out.write('left alone\n')
+    out.flush()
+
+
 def show_help_page():
     out, inp = terminal()
     out.write('\033[H\033[2J' + guide.guide() + '\n\npress Enter to go back ')
@@ -68,6 +85,12 @@ def main():
         return
     if args[0] == 'pond':
         return pond.run(args[1:])
+    if args[:1] == ['ask'] and len(args) >= 2:
+        questions = {'hide-all': 'Hide every session from the list? They stay on disk and Ctrl-U brings them back.',
+                     'rebuild': 'Rebuild the index from scratch? The next listing rescans every transcript.'}
+        if args[1] in questions:
+            return ask(questions[args[1]], args[1:])
+        sys.exit('usage: duckpond ask hide-all|rebuild')
     if args == ['vscode-windows']:
         windows, names = sessions.refresh_vscode_windows()
         print(f"{windows} window{'s' if windows != 1 else ''}: {', '.join(sorted(names)) or 'none'}")

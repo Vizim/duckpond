@@ -252,3 +252,28 @@ def test_vscode_open_folders(stores, monkeypatch):
     assert sessions.vscode_open_folders() == set()
     monkeypatch.setattr(sessions, 'pid_any', lambda name: False)
     assert sessions.vscode_open_folders() == set()
+
+
+def test_hide_all_and_rebuild(stores, capsys):
+    from duckpond import sessions
+    s = stores['sessions']
+    s.main(['hide-all'])
+    rows = [r for r in listing(s, capsys) if not r[1].startswith('__')]
+    assert rows == []
+    s.main(['unhide-all'])
+    assert len([r for r in listing(s, capsys) if not r[1].startswith('__')]) == 12
+    assert os.path.exists(sessions.INDEX)
+    s.main(['rebuild'])
+    assert not os.path.exists(sessions.INDEX)
+    assert len([r for r in listing(s, capsys) if not r[1].startswith('__')]) == 12
+
+
+def test_ask_runs_only_on_yes(stores, monkeypatch, capsys):
+    import io
+    from duckpond import cli, sessions
+    answers = iter(['n\n', 'y\n'])
+    monkeypatch.setattr(cli, 'terminal', lambda: (io.StringIO(), io.StringIO(next(answers))))
+    cli.ask('hide?', ['hide-all'])
+    assert len([r for r in listing(stores['sessions'], capsys) if not r[1].startswith('__')]) == 12
+    cli.ask('hide?', ['hide-all'])
+    assert [r for r in listing(stores['sessions'], capsys) if not r[1].startswith('__')] == []

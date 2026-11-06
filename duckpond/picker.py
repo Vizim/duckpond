@@ -120,6 +120,8 @@ def pick():
            f'--bind=change:reload({me} list {{q}})', f'--bind=ctrl-r:reload({me} list {{q}})',
            f'--bind=ctrl-x:execute-silent({me} hide {{1}} {{2}})+reload({me} list {{q}})',
            f'--bind=ctrl-u:execute-silent({me} unhide-all)+reload({me} list {{q}})',
+           f'--bind=alt-x:execute({me} ask hide-all)+reload({me} list {{q}})',
+           f'--bind=alt-r:execute({me} ask rebuild)+reload({me} list {{q}})',
            f'--bind=ctrl-y:execute-silent({me} copy {{2}})',
            f'--bind=ctrl-p:change-preview({me} preview --full {{1}} {{2}})',
            f'--bind=focus:change-preview({me} preview {{1}} {{2}})',

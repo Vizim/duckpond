@@ -11,6 +11,8 @@ KEYS = [
     ('Ctrl-P', 'show the whole transcript in the preview; move the cursor to go back'),
     ('Ctrl-X', 'hide the row (nothing is deleted)'),
     ('Ctrl-U', 'unhide everything'),
+    ('Alt-X', 'hide every session, after a y/n prompt (nothing is deleted)'),
+    ('Alt-R', 'rebuild the index from scratch, after a y/n prompt'),
     ('Ctrl-Y', 'copy the session id'),
     ('Ctrl-R', 'refresh the list'),
     ('?', 'this guide (F1 works too); Enter brings you back'),

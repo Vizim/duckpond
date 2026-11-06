@@ -139,7 +139,7 @@ def test_guide_mentions_every_key_in_the_header():
     import re
     from duckpond import help as guide
     text = guide.guide(color=False)
-    for key in ('Enter', 'Ctrl-O', 'Ctrl-F', 'Ctrl-N', 'Ctrl-T', 'Ctrl-P', 'Ctrl-X', 'Ctrl-U', 'Ctrl-Y', 'Ctrl-R', '?', 'F1'):
+    for key in ('Enter', 'Ctrl-O', 'Ctrl-F', 'Ctrl-N', 'Ctrl-T', 'Ctrl-P', 'Ctrl-X', 'Ctrl-U', 'Alt-X', 'Alt-R', 'Ctrl-Y', 'Ctrl-R', '?', 'F1'):
         assert key in text
     assert 'duckpond pond' in text and '~/.cache/duckpond' in text
     assert not re.search(r'\x1b', text)
