@@ -163,8 +163,10 @@ def test_tool_tracking_and_newest(stores):
     codex = [e for e in sessions.collect().values() if e['agent'] == 'codex']
     assert codex and all(e['data']['tool'] == 'shell bash -lc redis-cli ping' for e in codex)
     for e in sessions.collect().values():
-        if e['agent'] in ('copilot', 'vscode'):
+        if e['agent'] == 'copilot':
             assert e['data']['tok'] == []
+            continue
+        if e['agent'] == 'vscode':
             continue
         tok = e['data']['tok']
         assert tok and all(len(m) == 4 for m in tok)
@@ -209,8 +211,9 @@ def test_codex_and_hermes_status_from_activity(stores):
     assert live[0]['tool'] == 'terminal' and live[0]['tok'] == [[live[0]['tok'][0][0], 3000, 500, 1000]] and live[0]['ctx'] == 4000
 
 
-def test_copilot_and_vscode_backends(stores):
+def test_copilot_and_vscode_backends(stores, monkeypatch):
     from duckpond import sessions
+    monkeypatch.setattr(sessions, 'vscode_open_workspaces', lambda: set())
     rows, _ = sessions.session_rows([], sessions.live_claude(), set())
     cop = [(d, status, where) for _, agent, sid, where, d, status in rows if agent == 'copilot']
     vs = [(d, status, where) for _, agent, sid, where, d, status in rows if agent == 'vscode']
@@ -220,5 +223,14 @@ def test_copilot_and_vscode_backends(stores):
     assert d['prompts'] == ['why does the deploy script skip the migrations step'] and d['reply'].startswith('The step is gated')
     d, status, where = vs[0]
     assert status is None and where == '/home/ada/dev/bakery-site' and sessions.title(d) == 'Contact form validation'
+    monkeypatch.setattr(sessions, 'vscode_open_workspaces', lambda: {d['ws']})
+    rows, _ = sessions.session_rows([], sessions.live_claude(), set())
+    assert [status for _, agent, sid, where, dd, status in rows if agent == 'vscode'] == ['open']
+    path = next(p for p, e in sessions.collect().items() if e['agent'] == 'vscode')
+    old = os.path.getmtime(path) - 3600
+    os.utime(path, (old, old))
+    rows, _ = sessions.session_rows([], sessions.live_claude(), set())
+    assert [status for _, agent, sid, where, dd, status in rows if agent == 'vscode'] == [None]
     assert d['turns'] == 2 and d['tool'] == 'runInTerminal' and d['busy'] is False and d['reply'].startswith('Added an email check')
     assert d['times'] and all(t > 1_600_000_000 for t in d['times'])
+    assert sum(m[1] for m in d['tok']) == 26000 and sum(m[2] for m in d['tok']) == 1500 and d['ctx'] == 26000

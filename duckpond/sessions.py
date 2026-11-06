@@ -17,7 +17,7 @@ CACHE = os.environ.get('DUCKPOND_CACHE') or os.path.join(
     os.environ.get('XDG_CACHE_HOME', os.path.join(HOME, '.cache')), 'duckpond')
 INDEX = os.path.join(CACHE, 'index.json')
 HIDDEN = os.path.join(CACHE, 'hidden.json')
-INDEX_VERSION = 12
+INDEX_VERSION = 14
 CLAUDE_HOME = os.environ.get('CLAUDE_CONFIG_DIR') or os.path.join(HOME, '.claude')
 CODEX_HOME = os.environ.get('CODEX_HOME') or os.path.join(HOME, '.codex')
 HERMES_HOME = os.environ.get('HERMES_HOME') or os.path.join(HOME, '.hermes')
@@ -40,7 +40,7 @@ KEEP_PROMPTS = 40
 KEEP_TIMES = 400
 KEEP_MINUTES = 1500
 RECENT_OPEN_SECONDS = 900
-LOCKLESS = ('codex', 'copilot', 'vscode')
+LOCKLESS = ('codex', 'copilot')
 BUSY_SECONDS = 20
 BOLD, DIM, GREEN, RESET = '\033[1m', '\033[2m', '\033[32m', '\033[0m'
 AGENTS = {
@@ -382,10 +382,26 @@ def part_tool(part):
     return None
 
 
+def vscode_tokens(s, i, req, prompt=None, completion=None):
+    # VS Code updates promptTokens and completionTokens on a request as it streams; count the growth.
+    seen = s.setdefault('vs_tok', {})
+    prev = seen.get(str(i)) or [0, 0]
+    prompt = num(prompt if prompt is not None else prev[0])
+    completion = num(completion if completion is not None else prev[1])
+    when = req.get('timestamp') if isinstance(req, dict) else None
+    add_tokens(s, when or time.time(), max(0, prompt - prev[0]), max(0, completion - prev[1]))
+    seen[str(i)] = [prompt, completion]
+    if prompt:
+        s['ctx'] = prompt
+    s['vs_req_when'] = when or s.get('vs_req_when')
+
+
 def vscode_request(s, req):
     msg = req.get('message')
     text = msg.get('text') if isinstance(msg, dict) else msg
     add_prompt(s, text, req.get('timestamp'))
+    if req.get('promptTokens') or req.get('completionTokens'):
+        vscode_tokens(s, s.get('n', 0), req, req.get('promptTokens'), req.get('completionTokens'))
     parts = req.get('response') or []
     set_reply(s, ''.join(part_text(p) for p in parts))
     for p in parts:
@@ -393,6 +409,7 @@ def vscode_request(s, req):
         if tool:
             s['tool'] = tool
     s['busy'] = req.get('result') is None
+    s['vs_req_when'] = req.get('timestamp')
     s['n'] = s.get('n', 0) + 1
 
 
@@ -431,6 +448,9 @@ def vscode_feed(s, line, store):
             set_reply(s, ''.join(part_text(p) for p in v))
         elif k[2] == 'result' and kind in (1, 2):
             s['busy'] = False
+        elif k[2] in ('promptTokens', 'completionTokens') and kind == 1 and len(k) == 3:
+            vscode_tokens(s, k[1], {'timestamp': s.get('vs_req_when')},
+                          v if k[2] == 'promptTokens' else None, v if k[2] == 'completionTokens' else None)
 
 
 FEEDS = {'claude': claude_feed, 'codex': codex_feed, 'copilot': copilot_feed, 'vscode': vscode_feed}
@@ -536,8 +556,10 @@ def collect_files(old, new):
             data, pos = scan(path, FEEDS[agent], state, pos)
         except OSError:
             continue
-        if agent == 'vscode' and not data['root']:
-            data['root'] = vscode_root(path)
+        if agent == 'vscode':
+            data['ws'] = os.path.basename(os.path.dirname(os.path.dirname(path)))
+            if not data['root']:
+                data['root'] = vscode_root(path)
         new[path] = dict(v=INDEX_VERSION, key=key, pos=pos, data=data, agent=agent,
                          sid=file_sid(agent, path, data), mtime=st.st_mtime)
         save_json(INDEX, {**old, **new})
@@ -686,6 +708,59 @@ def session_alive(d):
         start = proc_start(d.get('pid'))
         return start is not None and (d.get('procStart') is None or str(d['procStart']) == start)
     return pid_alive(d.get('pid'))
+
+
+_VSCODE_OPEN = [0.0, set()]
+
+
+def vscode_open_workspaces():
+    # Workspace storage folders a running VS Code window holds open: on Linux and macOS the window keeps
+    # its state.vscdb open, so the open file handles say which workspaces are live. Cached for 5 seconds.
+    now = time.time()
+    if now - _VSCODE_OPEN[0] < 5:
+        return _VSCODE_OPEN[1]
+    found = set()
+    try:
+        pids = subprocess.run(['pgrep', '-x', 'code'], capture_output=True, text=True, timeout=5).stdout.split()
+    except (OSError, subprocess.SubprocessError):
+        pids = []
+    if sys.platform.startswith('linux'):
+        for pid in pids:
+            try:
+                for fd in os.listdir(f'/proc/{pid}/fd'):
+                    try:
+                        target = os.readlink(f'/proc/{pid}/fd/{fd}')
+                    except OSError:
+                        continue
+                    if 'workspaceStorage' in target and target.endswith('state.vscdb'):
+                        found.add(os.path.basename(os.path.dirname(target)))
+            except OSError:
+                continue
+    elif sys.platform == 'darwin' and pids:
+        try:
+            out = subprocess.run(['lsof', '-Fn', '-p', ','.join(pids)], capture_output=True, text=True, timeout=10).stdout
+            for line in out.splitlines():
+                if line.startswith('n') and 'workspaceStorage' in line and line.endswith('state.vscdb'):
+                    found.add(os.path.basename(os.path.dirname(line[1:])))
+        except (OSError, subprocess.SubprocessError):
+            pass
+    else:
+        found = None
+    if found is not None and pids:
+        found.add('emptyWindowChatSessions')
+    _VSCODE_OPEN[0], _VSCODE_OPEN[1] = now, found
+    return found
+
+
+def pid_any(name):
+    # Is a process with this command name running? Linux and macOS via pgrep; Windows via tasklist.
+    try:
+        if sys.platform == 'win32':
+            out = subprocess.run(['tasklist', '/FI', f'IMAGENAME eq {name}.exe', '/NH'], capture_output=True, text=True, timeout=5).stdout
+            return f'{name}.exe' in out.lower()
+        return subprocess.run(['pgrep', '-x', name], capture_output=True, timeout=5).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return True
 
 
 def live_claude():
@@ -926,6 +1001,7 @@ def newest(terms):
 
 def session_rows(terms, live, hidden):
     rows, known = [], set()
+    vscode_open = None
     for ent in collect().values():
         agent, sid, d = ent['agent'], ent['sid'], ent['data']
         if not d['root'] or (d['turns'] == 0 and not d['custom'] and not d['ai']):
@@ -938,6 +1014,15 @@ def session_rows(terms, live, hidden):
         age = time.time() - ent['mtime']
         if agent == 'claude' and sid in live:
             status = live[sid]['status']
+        elif agent == 'vscode':
+            # A VS Code chat is open while its window is; busy while a request has no result yet.
+            if vscode_open is None:
+                vscode_open = vscode_open_workspaces()
+            live_window = (d.get('ws') in vscode_open) if vscode_open is not None else True
+            if live_window and d.get('busy') and age < 3600:
+                status = 'busy'
+            elif live_window and age < RECENT_OPEN_SECONDS:
+                status = 'open'
         elif d.get('open') or (agent in LOCKLESS and age < RECENT_OPEN_SECONDS):
             # No lock file for these: recent writes mean open; a turn in progress or a very recent write means busy.
             status = 'busy' if age < BUSY_SECONDS or (agent in LOCKLESS and d.get('busy')) else 'open'
@@ -1034,7 +1119,8 @@ def doctor():
     if fzf and found and rows:
         print(f"{GREEN}ready.{RESET} run: duckpond")
     elif fzf and found:
-        print(f"{GREEN}ready{RESET}, no sessions yet. run {' or '.join(found)} once and it will show up here.")
+        names = [{'vscode': 'a VS Code chat'}.get(a, a) for a in found]
+        print(f"{GREEN}ready{RESET}, no sessions yet. start {' or '.join(names)} once and it will show up here.")
     elif not fzf:
         print(hints.fzf_hint())
     else:

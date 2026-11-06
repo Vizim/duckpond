@@ -203,6 +203,10 @@ def vscode_session(root, project, title, prompts, reply, age_h, now=None):
     for i, p in enumerate(prompts[1:], 1):
         lines.append({'kind': 2, 'k': ['requests'], 'v': [request(i, p, done=False)]})
         lines.append({'kind': 2, 'k': ['requests', i, 'response'], 'v': [{'kind': 'toolInvocationSerialized', 'toolId': 'runInTerminal'}]})
+        lines.append({'kind': 1, 'k': ['requests', i, 'promptTokens'], 'v': 20000})
+        lines.append({'kind': 1, 'k': ['requests', i, 'completionTokens'], 'v': 800})
+        lines.append({'kind': 1, 'k': ['requests', i, 'promptTokens'], 'v': 26000})
+        lines.append({'kind': 1, 'k': ['requests', i, 'completionTokens'], 'v': 1500})
         lines.append({'kind': 1, 'k': ['requests', i, 'result'], 'v': {'metadata': {}}})
     if title:
         lines.append({'kind': 1, 'k': ['customTitle'], 'v': title})
@@ -210,7 +214,8 @@ def vscode_session(root, project, title, prompts, reply, age_h, now=None):
     with open(path, 'w', encoding='utf-8') as fh:
         for line in lines:
             fh.write(dumps(line) + '\n')
-    os.utime(path, (t0 + 1200, t0 + 1200))
+    stamp = now - 30 if age_h < 1 else t0 + 1200
+    os.utime(path, (stamp, stamp))
     return sid
 
 
@@ -252,7 +257,7 @@ def build(root):
     ids['vscode'].append(vscode_session(
         root, f'{HOME}/dev/bakery-site', 'Contact form validation',
         ['the contact form accepts an empty email', 'add a test for it'],
-        'Added an email check and a unit test in contact.test.ts.', 26))
+        'Added an email check and a unit test in contact.test.ts.', 0.2))
     hermes_rows = [
         ('20261105_224941_dd3d02', f'{HOME}/dev/ledger', 'Check the ledger exports',
          ['use subagents to count lines in words.txt and list the files'], 'Both subagents are running.', 0.1, False),
