@@ -242,8 +242,8 @@ def test_pond_btop_panels():
     assert lg[0] == 0.0 and lg[2] == 1.0 and 0.09 < lg[1] < 0.11
     synced = pond.scaled([0, 1000], log=True, top=1000) + pond.scaled([10], log=True, top=1000)
     assert synced[1] == 1.0 and 0.3 < synced[2] < 0.4
-    assert any('log · per second' in line for line in tall)
-    assert any('▼ in' in line and 'log · per second' in line for line in tall)
+    assert any('as messages land' in line for line in tall)
+    assert any('▼ in' in line and 'as messages land' in line for line in tall)
     assert any('▲900/m' in line for line in tall)
     for w in range(96, 110):
         for line in pond.plain(pond.screen(ducks, 0, pond.demo_stats(), net, w, 30)):
@@ -273,10 +273,10 @@ def test_pond_btop_panels():
     a['tin'], a['tout'], a['cost'] = 700, 70, 1.02
     s.sample([a], now=1002.0)
     assert a['rate'] == (10.0, 1.0) and s.busy == [1.0, 1.0]
-    assert s.tin[-1] == 300.0 and s.tin[-2] == 300.0 and s.tin[-3] == 0.0 and s.tout[-1] == 30.0
+    assert s.tin[-1] == 600.0 and s.tin[-2] == 0.0 and s.tout[-1] == 60.0
     assert a['worked'] == (2.0, 2.0) and abs(s.burn[-1] - 1.2) < 1e-6
     s.sample([a], now=1030.0)
-    assert a['rate'] == (10.0, 1.0) and abs(s.burn[-1] - 1.2) < 1e-6 and s.tin[-1] == 0.0
+    assert a['rate'] == (10.0, 1.0) and abs(s.burn[-1] - 1.2) < 1e-6 and 0 < s.tin[-1] < 600.0 * 0.9
     s.sample([a], now=1070.0)
     assert a['rate'] == (0.0, 0.0) and s.burn[-1] == 0.0
     s.sample([], now=1003.0)

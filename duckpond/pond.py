@@ -523,6 +523,7 @@ class Sampler:
 
     WINDOW = 60.0
     WORKED_WINDOW = 600.0
+    FADE = 8.0
 
     def __init__(self):
         self.started = None
@@ -564,8 +565,11 @@ class Sampler:
         self.ducks = list(ducks)
         span = max(1.0, min(self.WINDOW, now - self.started))
         total_in = total_out = spend = 0.0
-        self.tin.append(0.0)
-        self.tout.append(0.0)
+        # Tokens land when a message completes, so the graph shows each landing and lets it fade over
+        # a few seconds, the way a bursty network graph does.
+        decay = math.exp(-self.interval / self.FADE)
+        self.tin.append(self.tin[-1] * decay if self.tin else 0.0)
+        self.tout.append(self.tout[-1] * decay if self.tout else 0.0)
         for duck in ducks:
             sid = duck['sid']
             fresh = duck['tin']
@@ -576,13 +580,8 @@ class Sampler:
                 din, dout = max(0, fresh - prev[0]), max(0, duck['tout'] - prev[1])
                 hist.append((now, din, dout, max(0.0, cost - prev[2])))
                 if din or dout:
-                    # The tokens arrived while the model worked on them, since this duck last changed:
-                    # spread them over those seconds so the graph shows the work as it happened.
-                    since = max(self.interval, now - self.changed.get(sid, now - self.interval))
-                    k = max(1, min(len(self.tin), round(since / self.interval)))
-                    for i in range(1, k + 1):
-                        self.tin[-i] += din / since
-                        self.tout[-i] += dout / since
+                    self.tin[-1] += din / self.interval
+                    self.tout[-1] += dout / self.interval
                     self.changed[sid] = now
             elif hist:
                 hist[-1] = (now, hist[-1][1], hist[-1][2], hist[-1][3])
@@ -650,7 +649,7 @@ def lower(st, net, width, height, hidden=()):
     divider = clip(f'{GREEN}▼ in{RESET}{BORDER}' + '─' * max(0, gw - 11) + f'{RESET}{CYAN}▲ out{RESET}', gw)
     down = [vflip(line) for line in reversed(braille_graph(scaled(tout, log=True, top=top), gw, max(1, graph_h - top_h - 1), GRADIENT_OUT))]
     axis = (f'{GREEN}▼ in{RESET} {human(net.rate_in)}/s   {CYAN}▲ out{RESET} {human(net.rate_out * 60)}/m'
-            f'   {DIM}log · per second · last {gw * 2 * net.interval:g}s{RESET}')
+            f'   {DIM}log · as messages land · last {gw * 2 * net.interval:g}s{RESET}')
     tokens = box('tokens', up + [divider] + down + [axis], left_w, height, num=2,
                  right=f"today {human(st['tin_today'])} in · {human(st['tout_today'])} out")
     bw = max(2, mid_w - 4)

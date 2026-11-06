@@ -43,7 +43,7 @@ Where each agent's numbers come from:
 | VS Code Copilot Chat | the request's final `promptTokens` | `completionTokens` | not reported |
 | Copilot CLI | not reported | not reported | not reported |
 
-Rates on the cards and the tokens graph are per second for in and per minute for out, with each turn's tokens spread over the seconds the model spent on it.
+The rates on the cards are one-minute averages, per second for in and per minute for out. The tokens graph shows each message as it lands and lets it fade over a few seconds, on one log scale for both halves.
 
 ## Light by design
 
