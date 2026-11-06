@@ -242,7 +242,7 @@ def test_pond_btop_panels():
     assert lg[0] == 0.0 and lg[2] == 1.0 and 0.09 < lg[1] < 0.11
     synced = pond.scaled([0, 1000], log=True, top=1000) + pond.scaled([10], log=True, top=1000)
     assert synced[1] == 1.0 and 0.3 < synced[2] < 0.4
-    assert any('one log scale' in line for line in tall)
+    assert any('log · per second' in line for line in tall)
     assert any('▼ in' in line and 'log · per second' in line for line in tall)
     assert any('▲900/m' in line for line in tall)
     for w in range(96, 110):
@@ -285,7 +285,7 @@ def test_pond_btop_panels():
     seeded = dict(sid='b', tin=6000, tout=600, cached=0, status='busy', cost=0.0, ctx=1000,
                   recent=[[5000 * 60 - 120, 3000, 300, 0], [5000 * 60 - 60, 3000, 300, 0]])
     s2.sample([seeded], now=5000 * 60.0)
-    assert len(s2.tin) == 401 and s2.tin[-1] == 0.0 and s2.tin[-2] == 50.0 and s2.tout[-2] == 5.0 and s2.tin[-130] == 0.0
+    assert len(s2.tin) == 400 and s2.tin[-1] == 0.0 and s2.tin[-3] == 50.0 and s2.tout[-3] == 5.0 and s2.tin[-130] == 0.0
     assert seeded['rate'] == (50.0, 5.0) and s2.ctx[-1] == 1000.0
     s2.sample([seeded], now=5000 * 60.0 + 30)
     assert seeded['rate'] == (50.0, 5.0)

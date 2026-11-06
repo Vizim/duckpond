@@ -179,7 +179,7 @@ def test_tool_tracking_and_newest(stores):
             assert all(m[1:] == [3000, 150, 2500] for m in tok) and e['data']['tool'] == 'shell bash -lc redis-cli ping'
         else:
             n = e['data']['turns']
-            assert tok[0][1:] == [3000 * n, 500 * n, 1000 * n]
+            assert tok[0][1:] == [4200 * n, 550 * n, 1000 * n]
     s = sessions.new_state()
     sessions.claude_feed(s, '{"type":"assistant","isSidechain":false,"message":{"id":"msg_x","usage":{"input_tokens":"n/a"},'
                             '"content":[{"type":"tool_use","id":"","name":"Agent","input":{}},'
@@ -210,7 +210,7 @@ def test_codex_and_hermes_status_from_activity(stores):
     assert by_agent['hermes'] == ['busy', None, None]
     live = [d for _, agent, sid, where, d, status in rows if agent == 'hermes' and status]
     assert [v[0] for v in live[0]['subagents'].values()] == ['count the lines in words.txt']
-    assert live[0]['tool'] == 'terminal' and live[0]['tok'] == [[live[0]['tok'][0][0], 3000, 500, 1000]] and live[0]['ctx'] == 4000
+    assert live[0]['tool'] == 'terminal' and live[0]['tok'] == [[live[0]['tok'][0][0], 4200, 550, 1000]] and live[0]['ctx'] == 4200
 
 
 def test_copilot_and_vscode_backends(stores, monkeypatch):

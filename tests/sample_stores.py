@@ -122,17 +122,17 @@ def hermes_db(root, rows, now=None):
     con.execute('create table sessions (id text primary key, cwd text, git_branch text, title text, title_source text,'
                 ' started_at real, ended_at real, last_activity_at real, message_count integer, estimated_cost_usd real,'
                 ' archived integer, parent_session_id text, input_tokens integer, output_tokens integer, cache_read_tokens integer,'
-                ' api_call_count integer)')
+                ' api_call_count integer, cache_write_tokens integer, reasoning_tokens integer)')
     con.execute('create table messages (id integer primary key autoincrement, session_id text, role text, content text,'
                 ' timestamp real, token_count integer, tool_name text, active integer)')
     for sid, cwd, title, prompts, reply, age_h, ended in rows:
         t0 = now - age_h * 3600
         last = now - 8 if not ended else t0 + 900
         con.execute('insert into sessions (id, cwd, git_branch, title, title_source, started_at, ended_at, last_activity_at,'
-                    ' message_count, estimated_cost_usd, archived, input_tokens, output_tokens, cache_read_tokens, api_call_count)'
-                    ' values (?,?,?,?,?,?,?,?,?,?,0,?,?,?,?)',
+                    ' message_count, estimated_cost_usd, archived, input_tokens, output_tokens, cache_read_tokens, api_call_count,'
+                    ' cache_write_tokens, reasoning_tokens) values (?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?)',
                     (sid, cwd, None, title, 'llm', t0, None if not ended else t0 + 900, last, len(prompts) * 2, 0.0,
-                     3000 * len(prompts), 500 * len(prompts), 1000 * len(prompts), len(prompts)))
+                     3000 * len(prompts), 500 * len(prompts), 1000 * len(prompts), len(prompts), 200 * len(prompts), 50 * len(prompts)))
         for i, p in enumerate(prompts):
             con.execute('insert into messages (session_id, role, content, timestamp, active) values (?,?,?,?,1)',
                         (sid, 'user', p, t0 + i * 300))

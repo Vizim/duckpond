@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""List Claude Code, Codex and Hermes sessions for the fzf picker and write a preview file per session."""
+"""Index every agent's sessions for the picker and the pond, and write a preview file per session.
+
+Token accounting, the same for every agent:
+  in       every token the model read for a turn: fresh input, cache writes and cache reads
+  cached   the part of "in" that was read from the prompt cache
+  out      every token the model produced: text, tool calls and reasoning
+  ctx      the "in" of the latest turn, which is how full the context window is
+  prompts  what you typed, including messages queued mid-turn; never slash commands, pasted
+           images, agent relays or harness notices
+"""
 import calendar
 import glob
 import json
@@ -604,14 +613,15 @@ def collect_hermes(old, new):
         cols = hermes_columns(con, 'sessions')
         msg_cols = hermes_columns(con, 'messages')
         want = ['id', 'cwd', 'git_branch', 'title', 'title_source', 'started_at', 'ended_at', 'last_activity_at',
-                'message_count', 'estimated_cost_usd', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'api_call_count']
+                'message_count', 'estimated_cost_usd', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'api_call_count',
+                'cache_write_tokens', 'reasoning_tokens']
         select = ', '.join(c if c in cols else f'null as {c}' for c in want)
         parents = "coalesce(archived, 0) = 0" + (" and parent_session_id is null" if 'parent_session_id' in cols else '')
         rows = con.execute(f"select {select} from sessions where {parents}").fetchall()
         children = hermes_children(con, cols)
     except sqlite3.Error:
         return
-    for sid, cwd, branch, title, title_source, started, ended, last, count, cost, tin, tout, cached, calls in rows:
+    for sid, cwd, branch, title, title_source, started, ended, last, count, cost, tin, tout, cached, calls, cwrite, reasoning in rows:
         path = f'hermes:{sid}'
         mtime = epoch(last) or epoch(ended) or epoch(started)
         subs = children.get(sid, {})
@@ -652,9 +662,11 @@ def collect_hermes(old, new):
                 set_reply(s, content)
                 add_tokens(s, when, 0, per_msg)
         if num(tin) or num(tout):
-            # Hermes keeps token totals per session rather than per message; context is the mean per API call.
-            s['tok'] = [[int(mtime // 60) * 60, num(tin), num(tout), num(cached)]]
-            s['ctx'] = (num(tin) + num(cached)) // max(1, num(calls))
+            # Hermes keeps per-session totals with uncached input, cache reads and cache writes apart,
+            # and reasoning apart from output; context is the mean "in" per API call.
+            total_in = num(tin) + num(cached) + num(cwrite)
+            s['tok'] = [[int(mtime // 60) * 60, total_in, num(tout) + num(reasoning), num(cached)]]
+            s['ctx'] = total_in // max(1, num(calls))
         s['tool'] = tool
         new[path] = dict(v=INDEX_VERSION, key=key, pos=0, data=s, agent='hermes', sid=sid, mtime=mtime)
     con.close()

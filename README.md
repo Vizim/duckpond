@@ -21,7 +21,29 @@ Type to search. Ctrl-P shows the whole transcript:
 - On short terminals, cards show only status, title, tokens and tool. Press 1 to 4 to toggle the pond, token, context and totals panels; the others reflow to use the available space, and your choices are remembered.
 - Use `+` and `-` to adjust the refresh interval, `r` to refresh, and `q` or Esc to quit. Run `duckpond last` to resume your newest session:
 
-*All screenshots are rendered from generated sample data, never from real sessions.*
+## What counts as in and out
+
+Every agent reports tokens differently, so duckpond maps them all onto one definition before it shows a number:
+
+| Figure | Meaning |
+|---|---|
+| in | Every token the model read for a turn: fresh input, cache writes and cache reads. The same total a provider bills as input across its price tiers |
+| cached | The part of "in" that came from the prompt cache. The cache hit meter is cached divided by in |
+| out | Every token the model produced: visible text, tool calls and reasoning |
+| ctx | The "in" of the latest turn, which is how full the context window is |
+| prompts | What you typed, including messages queued while the agent was busy. Slash commands, pasted images, agent relays and harness notices are not prompts |
+
+Where each agent's numbers come from:
+
+| Agent | in | out | cached |
+|---|---|---|---|
+| Claude Code | `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`, counted once per message id | `output_tokens` (thinking included) | `cache_read_input_tokens` |
+| Codex | `last_token_usage.input_tokens` (cache included) | `output_tokens` (reasoning included) | `cached_input_tokens` |
+| Hermes | session `input_tokens + cache_read_tokens + cache_write_tokens` | `output_tokens + reasoning_tokens` | `cache_read_tokens` |
+| VS Code Copilot Chat | the request's final `promptTokens` | `completionTokens` | not reported |
+| Copilot CLI | not reported | not reported | not reported |
+
+Rates on the cards and the tokens graph are per second for in and per minute for out, with each turn's tokens spread over the seconds the model spent on it.
 
 ## Light by design
 
