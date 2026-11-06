@@ -500,11 +500,7 @@ def vscode_root(path):
     meta = os.path.join(os.path.dirname(os.path.dirname(path)), 'workspace.json')
     folder = load_json(meta, {}).get('folder') or ''
     if folder.startswith('file://'):
-        from urllib.parse import unquote, urlparse
-        p = unquote(urlparse(folder).path)
-        if sys.platform == 'win32' and re.match(r'^/[A-Za-z]:', p):
-            p = p[1:]
-        return p
+        return uri_path(folder)
     return folder or HOME
 
 
@@ -713,57 +709,32 @@ def session_alive(d):
 _VSCODE_OPEN = [0.0, set()]
 
 
-def vscode_windows():
-    # Workspace storage folders held open by VS Code, with when each was last written, plus the window count.
-    held, renderers = {}, 0
-    try:
-        pids = subprocess.run(['pgrep', '-x', 'code'], capture_output=True, text=True, timeout=5).stdout.split()
-    except (OSError, subprocess.SubprocessError):
-        return None, 0
-    if sys.platform.startswith('linux'):
-        for pid in pids:
-            try:
-                with open(f'/proc/{pid}/cmdline', 'rb') as fh:
-                    if b'--type=renderer' in fh.read():
-                        renderers += 1
-                        continue
-                for fd in os.listdir(f'/proc/{pid}/fd'):
-                    try:
-                        target = os.readlink(f'/proc/{pid}/fd/{fd}')
-                    except OSError:
-                        continue
-                    if 'workspaceStorage' in target and target.endswith('state.vscdb'):
-                        held[os.path.basename(os.path.dirname(target))] = target
-            except OSError:
-                continue
-    elif sys.platform == 'darwin':
-        try:
-            out = subprocess.run(['lsof', '-Fn', '-c', 'Code'], capture_output=True, text=True, timeout=10).stdout
-            for line in out.splitlines():
-                if line.startswith('n') and 'workspaceStorage' in line and line.endswith('state.vscdb'):
-                    held[os.path.basename(os.path.dirname(line[1:]))] = line[1:]
-            ps = subprocess.run(['pgrep', '-f', 'Code Helper \\(Renderer\\)'], capture_output=True, text=True, timeout=5).stdout
-            renderers = len(ps.split())
-        except (OSError, subprocess.SubprocessError):
-            return None, 0
-    else:
-        return None, 0
-    stamps = {}
-    for ws, path in held.items():
-        try:
-            stamps[ws] = os.stat(path).st_mtime
-        except OSError:
-            stamps[ws] = 0.0
-    return stamps, renderers
+def uri_path(uri):
+    from urllib.parse import unquote, urlparse
+    path = unquote(urlparse(uri).path)
+    if sys.platform == 'win32' and re.match(r'^/[A-Za-z]:', path):
+        path = path[1:]
+    return os.path.normpath(path)
 
 
-def pick_open_windows(stamps, renderers):
-    # VS Code keeps a closed window's storage open for a while, so keep only as many workspaces as
-    # there are windows, the most recently written first.
-    if stamps is None:
-        return None
-    keep = max(1, renderers) if stamps else 0
-    return set(sorted(stamps, key=lambda ws: -stamps[ws])[:keep])
+def vscode_open_folders():
+    # Folders with a VS Code window open right now: VS Code keeps this list for hot exit and updates it
+    # as windows open and close. Empty when VS Code is not running at all.
+    if not pid_any('code' if sys.platform != 'darwin' else 'Electron'):
+        return set()
+    reg = load_json(os.path.join(VSCODE_USER, 'globalStorage', 'storage.json'), {}).get('backupWorkspaces') or {}
+    out = set()
+    for entry in reg.get('folders') or []:
+        uri = entry.get('folderUri') if isinstance(entry, dict) else entry
+        if isinstance(uri, str) and uri.startswith('file://'):
+            out.add(uri_path(uri))
+    for entry in reg.get('workspaces') or []:
+        uri = (entry.get('configURIPath') if isinstance(entry, dict) else entry) or ''
+        if isinstance(uri, str) and uri.startswith('file://'):
+            out.add(uri_path(uri))
+    if reg.get('emptyWindows'):
+        out.add('')
+    return out
 
 
 def vscode_open_workspaces():
@@ -771,12 +742,8 @@ def vscode_open_workspaces():
     now = time.time()
     if now - _VSCODE_OPEN[0] < 5:
         return _VSCODE_OPEN[1]
-    stamps, renderers = vscode_windows()
-    found = pick_open_windows(stamps, renderers)
-    if found is not None and stamps:
-        found.add('emptyWindowChatSessions')
-    _VSCODE_OPEN[0], _VSCODE_OPEN[1] = now, found
-    return found
+    _VSCODE_OPEN[0], _VSCODE_OPEN[1] = now, vscode_open_folders()
+    return _VSCODE_OPEN[1]
 
 
 def vscode_shown_chat(ws):
@@ -1069,7 +1036,8 @@ def session_rows(terms, live, hidden):
             # A VS Code chat is open while a live window is showing it; busy while a request has no result yet.
             if vscode_open is None:
                 vscode_open = vscode_open_workspaces()
-            live_window = (d.get('ws') in vscode_open) if vscode_open is not None else age < RECENT_OPEN_SECONDS
+            folder = '' if d.get('ws') == 'emptyWindowChatSessions' else os.path.normpath(d['root'] or '')
+            live_window = folder in vscode_open
             if live_window and d.get('busy') and age < 3600:
                 status = 'busy'
             elif live_window and d.get('ws') and vscode_shown_chat(d['ws']) == sid:
