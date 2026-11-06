@@ -214,6 +214,14 @@ def vscode_session(root, project, title, prompts, reply, age_h, now=None):
     with open(path, 'w', encoding='utf-8') as fh:
         for line in lines:
             fh.write(dumps(line) + '\n')
+    import base64
+    con = sqlite3.connect(os.path.join(ws, 'state.vscdb'))
+    con.execute('create table ItemTable (key text unique on conflict replace, value blob)')
+    shown = base64.b64encode(sid.encode()).decode()
+    con.execute('insert into ItemTable values (?, ?)', ('memento/interactive-session-view-copilot',
+                dumps({'sessionResource': {'external': f'vscode-chat-session://local/{shown}'}})))
+    con.commit()
+    con.close()
     stamp = now - 30 if age_h < 1 else t0 + 1200
     os.utime(path, (stamp, stamp))
     return sid

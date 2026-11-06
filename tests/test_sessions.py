@@ -226,11 +226,19 @@ def test_copilot_and_vscode_backends(stores, monkeypatch):
     monkeypatch.setattr(sessions, 'vscode_open_workspaces', lambda: {d['ws']})
     rows, _ = sessions.session_rows([], sessions.live_claude(), set())
     assert [status for _, agent, sid, where, dd, status in rows if agent == 'vscode'] == ['open']
-    path = next(p for p, e in sessions.collect().items() if e['agent'] == 'vscode')
-    old = os.path.getmtime(path) - 3600
-    os.utime(path, (old, old))
+    assert sessions.vscode_shown_chat(d['ws']) == stores['ids']['vscode'][0]
+    monkeypatch.setattr(sessions, 'vscode_shown_chat', lambda ws: 'some-other-chat')
     rows, _ = sessions.session_rows([], sessions.live_claude(), set())
     assert [status for _, agent, sid, where, dd, status in rows if agent == 'vscode'] == [None]
     assert d['turns'] == 2 and d['tool'] == 'runInTerminal' and d['busy'] is False and d['reply'].startswith('Added an email check')
     assert d['times'] and all(t > 1_600_000_000 for t in d['times'])
     assert sum(m[1] for m in d['tok']) == 26000 and sum(m[2] for m in d['tok']) == 1500 and d['ctx'] == 26000
+
+
+def test_vscode_window_selection():
+    from duckpond import sessions
+    assert sessions.pick_open_windows(None, 0) is None
+    assert sessions.pick_open_windows({}, 0) == set()
+    assert sessions.pick_open_windows({'a': 10.0, 'b': 20.0}, 1) == {'b'}
+    assert sessions.pick_open_windows({'a': 10.0, 'b': 20.0}, 2) == {'a', 'b'}
+    assert sessions.pick_open_windows({'a': 10.0, 'b': 20.0, 'c': 5.0}, 0) == {'b'}
