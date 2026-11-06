@@ -29,9 +29,40 @@ def claude_session(root, project, title, prompts, reply, age_h, cost, live=False
         ts = t0 + i * 600
         lines.append({'parentUuid': None, 'isSidechain': False, 'type': 'user', 'cwd': project, 'gitBranch': 'main',
                       'timestamp': iso(ts), 'sessionId': sid, 'message': {'role': 'user', 'content': p}})
+        usage = {'input_tokens': 20, 'cache_creation_input_tokens': 300, 'cache_read_input_tokens': 5000,
+                 'cache_creation': {'ephemeral_5m_input_tokens': 300, 'ephemeral_1h_input_tokens': 0}, 'output_tokens': 400}
         lines.append({'parentUuid': None, 'isSidechain': False, 'type': 'assistant', 'cwd': project, 'timestamp': iso(ts + 60),
-                      'sessionId': sid, 'message': {'role': 'assistant', 'content': [
+                      'sessionId': sid, 'message': {'id': f'msg_{i}', 'role': 'assistant', 'usage': usage, 'content': [
                           {'type': 'text', 'text': reply if i == len(prompts) - 1 else 'Working on it.'}]}})
+        lines.append({'parentUuid': None, 'isSidechain': False, 'type': 'assistant', 'cwd': project, 'timestamp': iso(ts + 61),
+                      'sessionId': sid, 'message': {'id': f'msg_{i}', 'role': 'assistant', 'usage': usage, 'content': [
+                          {'type': 'tool_use', 'id': f'toolu_r{i}', 'name': 'Read', 'input': {'file_path': '/x/y.py'}}]}})
+    if live:
+        lines.append({'parentUuid': None, 'isSidechain': False, 'type': 'assistant', 'cwd': project, 'timestamp': iso(ts + 90),
+                      'sessionId': sid, 'message': {'role': 'assistant', 'content': [
+                          {'type': 'tool_use', 'id': 'toolu_0', 'name': 'Agent',
+                           'input': {'description': 'Review the diff', 'prompt': 'Review it.'}},
+                          {'type': 'tool_use', 'id': 'toolu_9', 'name': 'Agent',
+                           'input': {'description': 'Finished already', 'prompt': 'Done.'}},
+                          {'type': 'tool_use', 'id': 'toolu_bg', 'name': 'Agent',
+                           'input': {'description': 'Background review', 'prompt': 'Review.'}},
+                          {'type': 'tool_use', 'id': 'toolu_bg2', 'name': 'Agent',
+                           'input': {'description': 'Background done', 'prompt': 'Review.'}},
+                          {'type': 'tool_use', 'id': 'toolu_1', 'name': 'Bash',
+                           'input': {'command': 'pytest -q', 'description': 'Run the test suite'}}]}})
+        lines.append({'parentUuid': None, 'isSidechain': False, 'type': 'user', 'cwd': project, 'timestamp': iso(ts + 120),
+                      'sessionId': sid, 'message': {'role': 'user', 'content': [
+                          {'type': 'tool_result', 'tool_use_id': 'toolu_9', 'content': 'ok'},
+                          {'type': 'tool_result', 'tool_use_id': 'toolu_bg', 'content': [{'type': 'text', 'text': 'Async agent launched successfully. agentId: x'}]},
+                          {'type': 'tool_result', 'tool_use_id': 'toolu_bg2', 'content': [{'type': 'text', 'text': 'Async agent launched successfully. agentId: y'}]}]}})
+        lines.append({'type': 'queue-operation', 'operation': 'enqueue', 'timestamp': iso(ts + 150), 'sessionId': sid,
+                      'content': '<task-notification>\n<tool-use-id>toolu_bg2</tool-use-id>\n<status>completed</status>\n</task-notification>'})
+        lines.append({'type': 'queue-operation', 'operation': 'enqueue', 'timestamp': iso(ts + 160), 'sessionId': sid,
+                      'content': 'also make the tests faster'})
+        lines.append({'type': 'queue-operation', 'operation': 'remove', 'timestamp': iso(ts + 161), 'sessionId': sid,
+                      'content': 'also make the tests faster'})
+        lines.append({'parentUuid': None, 'isSidechain': False, 'type': 'user', 'cwd': project, 'timestamp': iso(ts + 170),
+                      'sessionId': sid, 'message': {'role': 'user', 'content': 'Another Claude session sent a message:\n<agent-message>hi</agent-message>'}})
     lines.append({'type': 'ai-title', 'aiTitle': title, 'sessionId': sid})
     lines.append({'type': 'cost-state', 'totalCostUSD': cost, 'sessionId': sid})
     path = os.path.join(d, sid + '.jsonl')
@@ -46,11 +77,11 @@ def claude_session(root, project, title, prompts, reply, age_h, cost, live=False
             start = fh.read().rsplit(')', 1)[1].split()[19]
         with open(os.path.join(sd, '1.json'), 'w', encoding='utf-8') as fh:
             json.dump({'pid': 1, 'procStart': start, 'sessionId': sid, 'cwd': project, 'status': 'idle'}, fh)
-        os.utime(path, (now - 300, now - 300))
+        os.utime(path, (now - 3, now - 3))
     return sid
 
 
-def codex_session(root, project, prompts, reply, age_h, now=None):
+def codex_session(root, project, prompts, reply, age_h, now=None, live=False):
     now = now or time.time()
     sid = str(uuid.uuid4())
     t0 = now - age_h * 3600
@@ -67,12 +98,19 @@ def codex_session(root, project, prompts, reply, age_h, now=None):
         lines.append({'timestamp': iso(ts), 'type': 'event_msg', 'payload': {'type': 'user_message', 'message': p, 'kind': 'plain'}})
         lines.append({'timestamp': iso(ts), 'type': 'response_item', 'payload': {
             'type': 'message', 'role': 'user', 'content': [{'type': 'input_text', 'text': p}]}})
+        lines.append({'timestamp': iso(ts + 60), 'type': 'response_item', 'payload': {
+            'type': 'function_call', 'name': 'shell', 'call_id': 'c1',
+            'arguments': '{"command":["bash","-lc","redis-cli ping"]}'}})
         lines.append({'timestamp': iso(ts + 90), 'type': 'event_msg', 'payload': {
             'type': 'agent_message', 'message': reply if i == len(prompts) - 1 else 'On it.'}})
+        lines.append({'timestamp': iso(ts + 91), 'type': 'event_msg', 'payload': {'type': 'token_count', 'info': {
+            'total_token_usage': {'input_tokens': 9000, 'output_tokens': 900},
+            'last_token_usage': {'input_tokens': 3000, 'cached_input_tokens': 2500, 'output_tokens': 150}}}})
     with open(path, 'w', encoding='utf-8') as fh:
         for line in lines:
             fh.write(dumps(line) + '\n')
-    os.utime(path, (t0 + 1800, t0 + 1800))
+    stamp = now - 10 if live else t0 + 1800
+    os.utime(path, (stamp, stamp))
     return sid
 
 
@@ -83,17 +121,34 @@ def hermes_db(root, rows, now=None):
     con = sqlite3.connect(os.path.join(d, 'state.db'))
     con.execute('create table sessions (id text primary key, cwd text, git_branch text, title text, title_source text,'
                 ' started_at real, ended_at real, last_activity_at real, message_count integer, estimated_cost_usd real,'
-                ' archived integer)')
+                ' archived integer, parent_session_id text, input_tokens integer, output_tokens integer, cache_read_tokens integer,'
+                ' api_call_count integer)')
     con.execute('create table messages (id integer primary key autoincrement, session_id text, role text, content text,'
-                ' active integer)')
+                ' timestamp real, token_count integer, tool_name text, active integer)')
     for sid, cwd, title, prompts, reply, age_h, ended in rows:
         t0 = now - age_h * 3600
-        con.execute('insert into sessions values (?,?,?,?,?,?,?,?,?,?,0)',
-                    (sid, cwd, None, title, 'llm', t0, t0 + 900 if ended else None, t0 + 900, len(prompts) * 2, 0.0))
+        last = now - 8 if not ended else t0 + 900
+        con.execute('insert into sessions (id, cwd, git_branch, title, title_source, started_at, ended_at, last_activity_at,'
+                    ' message_count, estimated_cost_usd, archived, input_tokens, output_tokens, cache_read_tokens, api_call_count)'
+                    ' values (?,?,?,?,?,?,?,?,?,?,0,?,?,?,?)',
+                    (sid, cwd, None, title, 'llm', t0, None if not ended else t0 + 900, last, len(prompts) * 2, 0.0,
+                     3000 * len(prompts), 500 * len(prompts), 1000 * len(prompts), len(prompts)))
         for i, p in enumerate(prompts):
-            con.execute('insert into messages (session_id, role, content, active) values (?,?,?,1)', (sid, 'user', p))
-            con.execute('insert into messages (session_id, role, content, active) values (?,?,?,1)',
-                        (sid, 'assistant', reply if i == len(prompts) - 1 else 'Done, next?'))
+            con.execute('insert into messages (session_id, role, content, timestamp, active) values (?,?,?,?,1)',
+                        (sid, 'user', p, t0 + i * 300))
+            con.execute('insert into messages (session_id, role, content, timestamp, active) values (?,?,?,?,1)',
+                        (sid, 'assistant', reply if i == len(prompts) - 1 else 'Done, next?', t0 + i * 300 + 60))
+        if not ended:
+            con.execute('insert into messages (session_id, role, content, timestamp, tool_name, active) values (?,?,?,?,?,1)',
+                        (sid, 'tool', '{"ok": true}', now - 9, 'terminal'))
+            for j, task in enumerate(('count the lines in words.txt', 'list the files here')):
+                cid = f'{sid}_child{j}'
+                con.execute('insert into sessions (id, cwd, title, title_source, started_at, ended_at, last_activity_at,'
+                            ' message_count, estimated_cost_usd, archived, parent_session_id, input_tokens, output_tokens, cache_read_tokens)'
+                            ' values (?,?,?,?,?,?,?,?,?,0,?,?,?,?)',
+                            (cid, cwd, None, 'llm', now - 6, None if j == 0 else now - 2, now - 5, 2, 0.0, sid, 900, 40, 0))
+                con.execute('insert into messages (session_id, role, content, timestamp, active) values (?,?,?,?,1)',
+                            (cid, 'user', task, now - 6))
     con.commit()
     con.close()
 
@@ -126,11 +181,13 @@ def build(root):
         'Memos are now quoted through the csv module instead of joined by hand.', 80, 0.44))
     ids['codex'].append(codex_session(
         root, f'{HOME}/dev/rocket-api', ['add a redis cache in front of the pricing lookup', 'invalidate it when a price changes'],
-        'Added a cache-aside layer keyed by sku with a 10 minute TTL and an invalidation hook on PriceUpdated.', 2))
+        'Added a cache-aside layer keyed by sku with a 10 minute TTL and an invalidation hook on PriceUpdated.', 2, live=True))
     ids['codex'].append(codex_session(
         root, f'{HOME}/dev/bakery-site', ['migrate the contact form to server actions'],
         'The form now posts to a server action with zod validation. Removed the old API route.', 30))
     hermes_rows = [
+        ('20261105_224941_dd3d02', f'{HOME}/dev/ledger', 'Check the ledger exports',
+         ['use subagents to count lines in words.txt and list the files'], 'Both subagents are running.', 0.1, False),
         ('20261104_091500_a1b2c3', f'{HOME}/dev/ledger', 'Reconcile October statements',
          ['reconcile the october bank statements against ledger'],
          'All 212 transactions matched except two pending card holds, listed in reconcile_report.md.', 9, True),

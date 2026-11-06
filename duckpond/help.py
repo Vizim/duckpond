@@ -20,7 +20,9 @@ KEYS = [
 COMMANDS = [
     ('duckpond', 'open the picker'),
     ('duckpond --window', 'open it in a new terminal window'),
-    ('duckpond pond', 'the agents running right now, as ducks on a pond'),
+    ('duckpond pond [--interval S]', 'btop-style heads-up display: ducks, tokens graph, context meters, totals'),
+    ('  in the pond', '1-4 toggle boxes, + - refresh interval, r refresh, q or Esc quit'),
+    ('duckpond last [words]', 'resume the most recent session, or the most recent one matching the words'),
     ('duckpond list [--json] [words]', 'print the list, optionally filtered, optionally as JSON'),
     ('duckpond export AGENT ID FILE', 'write one conversation as markdown'),
     ('duckpond config terminal "..."', 'choose the terminal used by --window and the app launcher'),
@@ -48,7 +50,7 @@ def guide(color=True):
            f'{BOLD}From the shell{RESET}', table(COMMANDS, 32), '',
            f'{BOLD}Where things live{RESET}',
            '  cache     ~/.cache/duckpond        summaries, previews, handoff files; owner-only; safe to delete',
-           '  settings  ~/.config/duckpond       config.ini, currently just the terminal command',
+           '  settings  ~/.config/duckpond       config.ini: terminal command, pond boxes to hide',
            '  hidden    ~/.cache/duckpond/hidden.json', '',
            f'{DIM}Nothing leaves this machine. Agent stores are only ever read.{RESET}',
            f'{DIM}Standard library Python plus fzf, nothing else. Nothing runs in the background.{RESET}']

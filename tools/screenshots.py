@@ -97,7 +97,7 @@ def main():
         os.chmod(path, 0o755)
     env = dict(os.environ, CLAUDE_CONFIG_DIR=f'{stores}/claude', CODEX_HOME=f'{stores}/codex',
                HERMES_HOME=f'{stores}/hermes', DUCKPOND_CACHE=f'{tmp}/cache', HOME='/home/ada',
-               PATH=shim + os.pathsep + os.environ['PATH'], COLUMNS='120')
+               PATH=shim + os.pathsep + os.environ['PATH'], COLUMNS='120', LINES='38')
     docs = os.path.join(REPO, 'docs')
     os.makedirs(docs, exist_ok=True)
 

@@ -18,7 +18,7 @@ def listing(sessions, capsys, *args):
 def test_lists_every_agent_newest_first(stores, capsys):
     rows = [r for r in listing(stores['sessions'], capsys) if not r[1].startswith('__')]
     agents = [r[0] for r in rows]
-    assert agents.count('claude') == 5 and agents.count('codex') == 2 and agents.count('hermes') == 2
+    assert agents.count('claude') == 5 and agents.count('codex') == 2 and agents.count('hermes') == 3
     assert agents[0] == 'claude' and 'Rate limiter' in rows[0][3]
     assert rows[0][2] == '/home/ada/dev/rocket-api'
 
@@ -99,7 +99,7 @@ def test_json_output(stores, capsys):
     s = stores['sessions']
     s.main(['list', '--json'])
     rows = json.loads(capsys.readouterr().out)
-    assert len(rows) == 9
+    assert len(rows) == 10
     assert {'agent', 'id', 'dir', 'title', 'last_active', 'prompts'} <= set(rows[0])
 
 
@@ -132,7 +132,7 @@ def test_doctor_runs(stores, capsys):
     with pytest.raises(SystemExit):
         s.main(['doctor'])
     out = capsys.readouterr().out
-    assert 'sessions   9 listed' in out and 'cache' in out
+    assert 'sessions   10 listed' in out and 'cache' in out
 
 
 def test_typed_cd_moves_the_resume_directory(stores, capsys):
@@ -147,3 +147,59 @@ def test_typed_cd_moves_the_resume_directory(stores, capsys):
     rows = listing(s, capsys)
     row = next(r for r in rows if r[1] == stores['ids']['claude'][0])
     assert row[2] == '/home/ada/dev/rocket-api/services'
+
+
+def test_tool_tracking_and_newest(stores):
+    from duckpond import sessions
+    everything = list(sessions.collect().values())
+    assert all(e['data']['tool'] == 'Read y.py' for e in everything if e['agent'] == 'claude' and not e['data']['subagents'])
+    live = [e for e in everything if e['agent'] == 'claude' and e['data']['subagents']]
+    assert live and live[0]['data']['tool'] == 'Bash Run the test suite'
+    assert live[0]['data']['prompts'][-1] == 'also make the tests faster' and live[0]['data']['turns'] == len(live[0]['data']['times'])
+    subs = live[0]['data']['subagents']
+    assert list(subs) == ['toolu_0', 'toolu_bg'] and subs['toolu_0'][0] == 'Review the diff'
+    assert live[0]['data']['times'] and all(isinstance(t, int) for t in live[0]['data']['times'])
+    codex = [e for e in sessions.collect().values() if e['agent'] == 'codex']
+    assert codex and all(e['data']['tool'] == 'shell bash -lc redis-cli ping' for e in codex)
+    for e in sessions.collect().values():
+        tok = e['data']['tok']
+        assert tok and all(len(m) == 4 for m in tok)
+        if e['agent'] == 'claude':
+            replies = e['data']['turns'] - (1 if e['data']['subagents'] else 0)
+            assert sum(m[2] for m in tok) == 400 * replies and tok[0][1:] == [5320, 400, 5000]
+        elif e['agent'] == 'codex':
+            assert all(m[1:] == [3000, 150, 2500] for m in tok) and e['data']['tool'] == 'shell bash -lc redis-cli ping'
+        else:
+            n = e['data']['turns']
+            assert tok[0][1:] == [3000 * n, 500 * n, 1000 * n]
+    s = sessions.new_state()
+    sessions.claude_feed(s, '{"type":"assistant","isSidechain":false,"message":{"id":"msg_x","usage":{"input_tokens":"n/a"},'
+                            '"content":[{"type":"tool_use","id":"","name":"Agent","input":{}},'
+                            '{"type":"tool_use","id":"toolu_r","name":"Read","input":{"file_path":"/a/b.py"}},'
+                            '{"type":"tool_use","id":"toolu_b","name":"Bash","input":{"command":"ls","description":"List"}}]},'
+                            '"timestamp":"2026-11-05T10:00:00Z"}', 'store')
+    assert s['subagents'] == {} and s['tool'] == 'Bash List' and s['tok'] == []
+    sessions.claude_feed(s, '{"type":"assistant","isSidechain":false,"message":{"id":"msg_y","usage":{"input_tokens":4,'
+                            '"cache_creation":{"ephemeral_5m_input_tokens":1},"output_tokens":900},"content":[{"type":"tool_use","id":"toolu_a",'
+                            '"name":"Agent","input":{"description":"Old one"}}]},"timestamp":"2026-11-05T10:00:00Z"}', 'store')
+    assert s['tok'][0][2] == 900 and s['subagents']['toolu_a'] == ['Old one', int(sessions.to_epoch('2026-11-05T10:00:00Z'))]
+    sessions.claude_feed(s, '{"type":"attachment","content":"<task-notification><tool-use-id>toolu_a</tool-use-id></task-notification>"}', 'store')
+    assert s['subagents'] == {}
+    sessions.codex_feed(s, '{"type":"event_msg","timestamp":"2026-11-05T10:01:00Z","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":"n/a","output_tokens":5}}}}', 'store')
+    assert s['tok'][-1][1:] == [0, 5, 0]
+    row = sessions.newest([])
+    assert row and row[1] in sessions.AGENTS
+    assert sessions.newest(['no-such-session-anywhere']) is None
+
+
+def test_codex_and_hermes_status_from_activity(stores):
+    from duckpond import sessions
+    rows, _ = sessions.session_rows([], sessions.live_claude(), set())
+    by_agent = {}
+    for _, agent, sid, where, d, status in rows:
+        by_agent.setdefault(agent, []).append(status)
+    assert 'busy' in by_agent['codex'] and by_agent['codex'].count(None) == 1
+    assert by_agent['hermes'] == ['busy', None, None]
+    live = [d for _, agent, sid, where, d, status in rows if agent == 'hermes' and status]
+    assert [v[0] for v in live[0]['subagents'].values()] == ['count the lines in words.txt']
+    assert live[0]['tool'] == 'terminal' and live[0]['tok'] == [[live[0]['tok'][0][0], 3000, 500, 1000]] and live[0]['ctx'] == 4000

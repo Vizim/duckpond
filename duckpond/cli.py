@@ -68,6 +68,12 @@ def main():
         return
     if args[0] == 'pond':
         return pond.run(args[1:])
+    if args[0] == 'last':
+        row = sessions.newest(args[1:])
+        if not row:
+            sys.exit('duckpond: no session matches' if args[1:] else 'duckpond: no sessions yet')
+        _, agent, sid, where, d, _ = row
+        return picker.go(agent, sid, where, sessions.title(d))
     if args[0] == 'config':
         if len(args) == 1:
             print(config.show())

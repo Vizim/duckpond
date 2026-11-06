@@ -12,7 +12,7 @@ Type to search. Ctrl-P shows the whole transcript:
 
 ![searching for rocket with the full transcript in the preview](docs/search.svg)
 
-Watch the agents that are running right now with `duckpond pond`:
+Keep `duckpond pond` open on a second screen. It is a heads-up display in the spirit of btop: it fills the terminal with a pond box on top, where every running agent is a duck, and tiled panels below, each titled the btop way with its toggle key: a network-style graph of tokens in (per second) and tokens out (per minute), both log scaled, as one-minute averages; a context box with a graph of context in use and a meter per session against its 200k or 1M window; and totals: sessions, prompts, tokens and cost for today and all time, cache hit rate, per-agent share of output, and today's cost, prompts and output per active hour. Every duck blinks and paddles about; busy ones bob and ripple, idle ones drift slowly, hop and sometimes quack. Subagents, whether Claude Code Agent calls or Hermes delegations, paddle behind their parent as ducklings. Under each duck is its card: status, for how long, and how much of the last ten minutes it spent working; title; directory and branch; uptime, prompts, cost and cache hit rate; tokens in and out with live rates and a sparkline; its ducklings; the tool it is running right now; and your last prompt. On a short terminal the cards shrink to status, title, tokens and tool. Keys 1 to 4 toggle the pond, tokens, context and totals boxes and the rest reflow to fill the space; the choice is remembered. `+` and `-` change the refresh interval, r refreshes, q or Esc leaves, and `duckpond last` resumes the newest session when you want to jump back in:
 
 ![duckpond pond showing three running agents as ducks](docs/pond.svg)
 
@@ -26,7 +26,7 @@ The whole point is that it costs almost nothing to have around.
 - **About 1,400 lines of Python**, 92 KB of code. The icons are the biggest thing in the package.
 - **Fast.** Listing every session on this machine takes about 60 ms and 25 MB of memory, because duckpond remembers how far into each transcript it has read and only scans the new bytes. fzf itself idles at under 4 MB.
 - **Nothing running in the background.** It only exists while the picker is open. Close it and it is gone.
-- **Nothing to configure** to get started. Install, run `duckpond`, done. The one setting there is, your terminal, has a sensible default.
+- **Nothing to configure** to get started. Install, run `duckpond`, done. The two settings there are, your terminal and which pond boxes to show, have sensible defaults.
 
 ## Features
 
@@ -52,7 +52,7 @@ The whole point is that it costs almost nothing to have around.
 | Ctrl-R | Refresh |
 | ? | The guide, inside the picker (F1 works too) |
 
-`duckpond help` prints the same guide in the terminal. Don't feel like typing `duckpond`? `aisp` does exactly the same thing. Outside the picker: `duckpond pond` shows the agents running right now as ducks on a pond, `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup.
+`duckpond help` prints the same guide in the terminal. Don't feel like typing `duckpond`? `aisp` does exactly the same thing. Outside the picker: `duckpond pond` is the live dashboard, `duckpond last` resumes your most recent session (`duckpond last codex` the most recent Codex one, any words filter like the search bar), `duckpond list --json` prints everything for scripts, `duckpond doctor` checks the setup.
 
 Type an agent name to filter to it, for example `codex` or `hermes rocket`.
 

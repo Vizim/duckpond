@@ -5,6 +5,7 @@ import sys
 
 KEYS = {
     'terminal': 'command that opens a new terminal window running the program given after it, e.g. "alacritty -e"',
+    'pond_hidden': 'pond boxes to leave out, comma separated from pond, tokens, context, totals (keys 1-4 toggle them)',
 }
 
 

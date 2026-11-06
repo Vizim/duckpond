@@ -55,6 +55,8 @@ Only do this when asked; starting an interactive agent takes over the terminal.
 
 - `duckpond doctor` reports which agents and stores were found, the fzf version, the cache location and ends with a verdict. Run it first when the user says the list is empty or an agent is missing.
 - The list only shows agents whose command is on `PATH`. Transcripts are still indexed when the command is missing.
+- `duckpond pond` is a btop-style heads-up display of the agents running right now: status and time worked, uptime, prompts, cost, cache hit rate, tokens in and out, current tool, subagents and last prompt per session, plus a tokens graph, context meters per session and totals. Keys: 1-4 toggle boxes (saved as the `pond_hidden` setting), + and - change the interval, r refreshes, q quits.
+- `duckpond last [words]` resumes the most recent session (optionally the most recent one matching the words) without opening the picker.
 - `duckpond config terminal "alacritty -e"` picks the terminal for `duckpond --window` and the desktop launcher.
 - `duckpond install-launcher` adds a Duckpond app with an icon; `duckpond uninstall-launcher` removes it.
 - Install or update: `curl -fsSL https://raw.githubusercontent.com/Vizim/duckpond/main/install.sh | sh` (Linux, macOS) or `irm https://raw.githubusercontent.com/Vizim/duckpond/main/install.ps1 | iex` (Windows). Add `--uninstall` / `-Uninstall` to remove.

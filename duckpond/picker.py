@@ -180,6 +180,16 @@ def cloud_by_link():
     return ['claude', '--teleport', m.group(0)]
 
 
+def go(agent, sid, where, title):
+    # Resume one session in its directory, with the same "back to" line the picker prints.
+    try:
+        os.chdir(where)
+    except OSError:
+        os.chdir(os.path.expanduser('~'))
+    print(f"{GREEN}\u25b6{RESET} back to {BOLD}{title}{RESET}  {DIM}{agent} \u00b7 {os.path.basename(where.rstrip(os.sep)) or where}{RESET}")
+    launch([c.replace('{sid}', sid) for c in COMMANDS.get(agent, COMMANDS['claude'])['resume']])
+
+
 def launch(cmd):
     exe = shutil.which(cmd[0])
     if not exe:

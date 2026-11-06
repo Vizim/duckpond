@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """List Claude Code, Codex and Hermes sessions for the fzf picker and write a preview file per session."""
+import calendar
 import glob
 import json
 import os
@@ -16,11 +17,15 @@ CACHE = os.environ.get('DUCKPOND_CACHE') or os.path.join(
     os.environ.get('XDG_CACHE_HOME', os.path.join(HOME, '.cache')), 'duckpond')
 INDEX = os.path.join(CACHE, 'index.json')
 HIDDEN = os.path.join(CACHE, 'hidden.json')
-INDEX_VERSION = 3
+INDEX_VERSION = 11
 CLAUDE_HOME = os.environ.get('CLAUDE_CONFIG_DIR') or os.path.join(HOME, '.claude')
 CODEX_HOME = os.environ.get('CODEX_HOME') or os.path.join(HOME, '.codex')
 HERMES_HOME = os.environ.get('HERMES_HOME') or os.path.join(HOME, '.hermes')
 KEEP_PROMPTS = 40
+KEEP_TIMES = 400
+KEEP_MINUTES = 1500
+CODEX_OPEN_SECONDS = 900
+BUSY_SECONDS = 20
 BOLD, DIM, GREEN, RESET = '\033[1m', '\033[2m', '\033[32m', '\033[0m'
 AGENTS = {
     'claude': dict(bin='claude', color='\033[38;5;208m'),
@@ -31,6 +36,13 @@ CWD_RE = re.compile(r'"cwd":"([^"]*)"')
 META_RE = re.compile(r'^\{"type":"([a-z-]+)"')
 CLAUDE_TYPES = {'user', 'assistant', 'custom-title', 'ai-title', 'cost-state'}
 SHELL_CD_RE = re.compile(r'<bash-input>\s*cd\b')
+TOOL_RE = re.compile(r'"type":"tool_use","id":"[^"]*","name":"([A-Za-z_]+)"')
+USAGE_FIELDS = {k: re.compile(r'"%s":(\d+)' % k) for k in
+                ('input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens')}
+MSG_ID_RE = re.compile(r'"id":"(msg_[^"]+)"')
+TS_RE = re.compile(r'"timestamp":"([^"]+)"')
+TASK_DONE_RE = re.compile(r'<tool-use-id>(toolu_[^<]+)</tool-use-id>')
+TOOL_DETAIL_RE = {k: re.compile(r'"%s":"((?:[^"\\]|\\.){1,160})' % k) for k in ('description', 'file_path', 'pattern', 'command')}
 NOISE_CMDS = re.compile(r'/(compact|clear|exit|quit|model|help|cost|status|resume|usage|login|config|permissions|rename)\b')
 
 
@@ -45,20 +57,127 @@ def text_of(content, kinds=('text',)):
 
 def new_state():
     return dict(root=None, shell=None, branch=None, custom=None, ai=None, prompts=[],
-                reply=None, turns=0, cost=None, started=None, open=False)
+                reply=None, turns=0, cost=None, started=None, open=False, tool=None, times=[], subagents={}, tok=[], ctx=0)
 
 
-def add_prompt(s, text):
+def to_epoch(v):
+    # Milliseconds, seconds or an ISO timestamp, as seconds since the epoch; None when unreadable.
+    if isinstance(v, (int, float)):
+        return v / 1000 if v > 1e11 else float(v)
+    if isinstance(v, str) and len(v) >= 19:
+        try:
+            return float(calendar.timegm(time.strptime(v[:19], '%Y-%m-%dT%H:%M:%S')))
+        except ValueError:
+            return None
+    return None
+
+
+def add_prompt(s, text, when=None):
     # Keep what the user typed: drop injected context, interruptions and repeats.
     t = (text or '').strip()
-    if not t or t.startswith('<') or t.startswith('[Request interrupted') or NOISE_CMDS.match(t):
+    # Bracketed and tagged lines are things the harness injected, not something the user typed.
+    if (not t or t.startswith('<') or t.startswith('[')
+            or t.startswith('Another Claude session sent a message') or NOISE_CMDS.match(t)):
         return
     t = ' '.join(t.split())[:300]
     if s['prompts'] and s['prompts'][-1] == t:
         return
     s['turns'] += 1
     s['prompts'].append(t)
+    ts = to_epoch(when)
+    if ts:
+        s.setdefault('times', []).append(round(ts))
+        del s['times'][:-KEEP_TIMES]
     s['prompts'] = s['prompts'][:1] + s['prompts'][1:][-KEEP_PROMPTS:]
+
+
+def add_tokens(s, when, tin, tout, cached=0):
+    # Tokens in, out and cached-in, summed per minute, so the pond can graph them like network traffic.
+    ts = to_epoch(when)
+    if not ts or not (tin or tout):
+        return
+    minute = int(ts // 60) * 60
+    tok = s.setdefault('tok', [])
+    if tok and tok[-1][0] == minute:
+        tok[-1][1] += tin
+        tok[-1][2] += tout
+        tok[-1][3] += cached
+    else:
+        tok.append([minute, tin, tout, cached])
+        del tok[:-KEEP_MINUTES]
+
+
+def num(v):
+    try:
+        return int(v or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def claude_usage(s, line):
+    # Each content block of one reply repeats the same usage, so count a message id once.
+    at = line.rfind('"usage":{')
+    if at < 0:
+        return
+    mid = MSG_ID_RE.search(line)
+    mid = mid.group(1) if mid else None
+    if mid and mid == s.get('last_msg'):
+        return
+    s['last_msg'] = mid
+    f = {}
+    for key, rx in USAGE_FIELDS.items():
+        m = rx.search(line, at)
+        f[key] = num(m.group(1)) if m else 0
+    tin = f['input_tokens'] + f['cache_creation_input_tokens'] + f['cache_read_input_tokens']
+    s['ctx'] = tin
+    stamps = TS_RE.findall(line)
+    add_tokens(s, stamps[-1] if stamps else None, tin, f['output_tokens'], f['cache_read_input_tokens'])
+
+
+def set_tool(s, line):
+    # Which tool the agent just called and, briefly, on what. Agent calls start a subagent.
+    blocks = list(TOOL_RE.finditer(line))
+    stamps = TS_RE.findall(line)
+    started = round(to_epoch(stamps[-1]) or time.time()) if stamps else round(time.time())
+    for i, m in enumerate(blocks):
+        end = blocks[i + 1].start() if i + 1 < len(blocks) else len(line)
+        detail = ''
+        for key in ('description', 'file_path', 'pattern', 'command'):
+            d = TOOL_DETAIL_RE[key].search(line, m.end(), end)
+            if d:
+                detail = unescape(d.group(1))
+                if key == 'file_path':
+                    detail = os.path.basename(detail)
+                break
+        s['tool'] = ' '.join([m.group(1), one_line(detail, 70)]).strip()
+        tid = re.search(r'"id":"([^"]*)"', m.group(0)).group(1)
+        if m.group(1) == 'Agent' and tid:
+            subs = s.setdefault('subagents', {})
+            subs[tid] = [one_line(detail, 40) or 'subagent', started]
+            for old in list(subs)[:-8]:
+                del subs[old]
+
+
+def end_subagents(s, content):
+    # A subagent ends with its tool result, unless it was launched in the background: then a task
+    # notification naming the same tool-use id arrives later.
+    subs = s.get('subagents')
+    if not subs:
+        return
+    if isinstance(content, str):
+        for tid in TASK_DONE_RE.findall(content):
+            subs.pop(tid, None)
+        return
+    for part in content if isinstance(content, list) else ():
+        if not isinstance(part, dict):
+            continue
+        if part.get('type') == 'tool_result':
+            tid = part.get('tool_use_id')
+            if tid in subs and 'Async agent launched' not in text_of(part.get('content')):
+                subs.pop(tid)
+        elif part.get('type') == 'text':
+            for tid in TASK_DONE_RE.findall(part.get('text') or ''):
+                subs.pop(tid, None)
 
 
 def set_reply(s, text):
@@ -86,15 +205,29 @@ def claude_feed(s, line, store):
         cwd = unescape(m.group(1))
         if not s['root'] or (store_name(cwd) == store and store_name(s['root']) != store):
             s['root'] = cwd
+    if 'task-notification' in line and s.get('subagents'):
+        # Background agents finish on whatever line type carries the notification, so read it raw.
+        for tid in TASK_DONE_RE.findall(line):
+            s['subagents'].pop(tid, None)
     m = META_RE.match(line)
-    if m:
-        if m.group(1) not in CLAUDE_TYPES:
+    kind = m.group(1) if m else None
+    if kind == 'queue-operation' and '"operation":"enqueue"' in line:
+        # Messages typed while the agent is busy are queued, and only sometimes replayed as user lines.
+        try:
+            d = json.loads(line)
+        except ValueError:
             return
-    elif '"type":"user"' in line:
-        pass
-    elif '"type":"assistant"' in line and '"type":"text"' in line:
-        pass
-    else:
+        add_prompt(s, d.get('content') if isinstance(d.get('content'), str) else '', d.get('timestamp'))
+        return
+    if kind and kind not in CLAUDE_TYPES:
+        return
+    if kind == 'assistant' or (not kind and '"type":"assistant"' in line):
+        claude_usage(s, line)
+        if '"type":"tool_use"' in line and '"isSidechain":false' in line:
+            set_tool(s, line)
+        if '"type":"text"' not in line:
+            return
+    elif not kind and '"type":"user"' not in line:
         return
     try:
         d = json.loads(line)
@@ -106,13 +239,14 @@ def claude_feed(s, line, store):
     if t == 'user':
         s['branch'] = d.get('gitBranch') or s['branch']
         s['started'] = s['started'] or d.get('timestamp')
+        end_subagents(s, (d.get('message') or {}).get('content'))
         text = text_of((d.get('message') or {}).get('content'))
         if SHELL_CD_RE.search(text) and d.get('cwd'):
             s['shell'] = d['cwd']
         if d.get('isMeta') or d.get('isCompactSummary'):
             return
         m = re.search(r'<command-name>(/\S+)</command-name>', text)
-        add_prompt(s, m.group(1) if m else text)
+        add_prompt(s, m.group(1) if m else text, d.get('timestamp'))
     elif t == 'assistant':
         set_reply(s, text_of((d.get('message') or {}).get('content')))
     elif t == 'custom-title':
@@ -142,14 +276,37 @@ def codex_feed(s, line, store):
         if p.get('cwd'):
             s['shell'] = p['cwd']
     elif t == 'event_msg':
-        if p.get('type') == 'user_message':
-            add_prompt(s, p.get('message'))
+        kind = p.get('type')
+        if kind == 'token_count':
+            info = p.get('info') or {}
+            last = info.get('last_token_usage') or {}
+            add_tokens(s, d.get('timestamp'), num(last.get('input_tokens')), num(last.get('output_tokens')),
+                       num(last.get('cached_input_tokens')))
+            s['ctx'] = num(last.get('input_tokens'))
+            if num(info.get('model_context_window')):
+                s['ctx_limit'] = num(info.get('model_context_window'))
+        elif kind == 'task_started':
+            s['busy'] = True
+        elif kind in ('task_complete', 'turn_aborted', 'error'):
+            s['busy'] = False
+        elif kind == 'user_message':
+            add_prompt(s, p.get('message'), d.get('timestamp'))
         elif p.get('type') == 'agent_message':
             set_reply(s, p.get('message'))
+    elif t == 'response_item' and p.get('type') in ('function_call', 'custom_tool_call', 'local_shell_call'):
+        try:
+            args = json.loads(p.get('arguments') or '{}') if isinstance(p.get('arguments'), str) else (p.get('arguments') or {})
+        except ValueError:
+            args = {}
+        cmd = (args.get('command') or args.get('cmd')) if isinstance(args, dict) else None
+        if p.get('type') == 'local_shell_call':
+            cmd = ((p.get('action') or {}).get('command'))
+        cmd = ' '.join(cmd) if isinstance(cmd, list) else cmd
+        s['tool'] = ' '.join([str(p.get('name') or p.get('type')), one_line(str(cmd or ''), 70)]).strip()
     elif t == 'response_item' and p.get('type') == 'message':
         text = text_of(p.get('content'), ('input_text', 'output_text'))
         if p.get('role') == 'user':
-            add_prompt(s, text)
+            add_prompt(s, text, d.get('timestamp'))
         elif p.get('role') == 'assistant':
             set_reply(s, text)
 
@@ -248,21 +405,54 @@ def epoch(v):
         return 0.0
 
 
+def hermes_columns(con, table):
+    try:
+        return {row[1] for row in con.execute(f'pragma table_info({table})')}
+    except sqlite3.Error:
+        return set()
+
+
+def hermes_children(con, cols):
+    # Subagents are child sessions; the ones still running become ducklings on their parent.
+    if 'parent_session_id' not in cols:
+        return {}
+    out = {}
+    try:
+        rows = con.execute("select id, parent_session_id, title, started_at from sessions"
+                           " where parent_session_id is not null and ended_at is null").fetchall()
+        for cid, parent, title, started in rows:
+            label = title
+            if not label:
+                row = con.execute("select content from messages where session_id = ? and role = 'user'"
+                                  " and coalesce(content, '') != '' order by id limit 1", (cid,)).fetchone()
+                label = row[0] if row else ''
+            out.setdefault(parent, {})[cid] = [one_line(label, 40) or 'subagent', round(epoch(started))]
+    except sqlite3.Error:
+        pass
+    return out
+
+
 def collect_hermes(old, new):
     db = os.path.join(HERMES_HOME, 'state.db')
     if not os.path.exists(db):
         return
     try:
         con = sqlite3.connect(Path(db).as_uri() + '?mode=ro', uri=True)
-        rows = con.execute(
-            "select id, cwd, git_branch, title, title_source, started_at, ended_at, last_activity_at,"
-            " message_count, estimated_cost_usd from sessions where coalesce(archived, 0) = 0").fetchall()
+        cols = hermes_columns(con, 'sessions')
+        msg_cols = hermes_columns(con, 'messages')
+        want = ['id', 'cwd', 'git_branch', 'title', 'title_source', 'started_at', 'ended_at', 'last_activity_at',
+                'message_count', 'estimated_cost_usd', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'api_call_count']
+        select = ', '.join(c if c in cols else f'null as {c}' for c in want)
+        parents = "coalesce(archived, 0) = 0" + (" and parent_session_id is null" if 'parent_session_id' in cols else '')
+        rows = con.execute(f"select {select} from sessions where {parents}").fetchall()
+        children = hermes_children(con, cols)
     except sqlite3.Error:
         return
-    for sid, cwd, branch, title, title_source, started, ended, last, count, cost in rows:
+    for sid, cwd, branch, title, title_source, started, ended, last, count, cost, tin, tout, cached, calls in rows:
         path = f'hermes:{sid}'
         mtime = epoch(last) or epoch(ended) or epoch(started)
-        key = [mtime, count, ended is None and time.time() - mtime < 1800]
+        subs = children.get(sid, {})
+        key = [mtime, count, ended is None and time.time() - mtime < 1800, sorted(subs)]
         hit = old.get(path)
         if fresh(hit, key):
             new[path] = hit
@@ -271,6 +461,7 @@ def collect_hermes(old, new):
         s['root'], s['branch'], s['cost'] = cwd or HOME, branch, cost
         # Crashed sessions never get an end time, so only a recently active one counts as open.
         s['open'] = ended is None and time.time() - mtime < 1800
+        s['subagents'] = subs
         if title_source == 'user':
             s['custom'] = title
         else:
@@ -279,15 +470,29 @@ def collect_hermes(old, new):
             s['started'] = time.strftime('%Y-%m-%d', time.localtime(epoch(started)))
         try:
             msgs = con.execute(
-                "select role, content from messages where session_id = ? and role in ('user', 'assistant')"
-                " and coalesce(content, '') != '' and coalesce(active, 1) = 1 order by id", (sid,)).fetchall()
+                "select role, content, timestamp, token_count from messages where session_id = ?"
+                " and role in ('user', 'assistant') and coalesce(content, '') != '' and coalesce(active, 1) = 1"
+                " order by id", (sid,)).fetchall()
+            tool = None
+            if 'tool_name' in msg_cols:
+                row = con.execute("select tool_name from messages where session_id = ? and tool_name is not null"
+                                  " order by id desc limit 1", (sid,)).fetchone()
+                tool = row[0] if row else None
         except sqlite3.Error:
-            msgs = []
-        for role, content in msgs:
+            msgs, tool = [], None
+        for role, content, when, per_msg in msgs:
+            per_msg = num(per_msg)
             if role == 'user':
-                add_prompt(s, content)
+                add_prompt(s, content, when)
+                add_tokens(s, when, per_msg, 0)
             else:
                 set_reply(s, content)
+                add_tokens(s, when, 0, per_msg)
+        if num(tin) or num(tout):
+            # Hermes keeps token totals per session rather than per message; context is the mean per API call.
+            s['tok'] = [[int(mtime // 60) * 60, num(tin), num(tout), num(cached)]]
+            s['ctx'] = (num(tin) + num(cached)) // max(1, num(calls))
+        s['tool'] = tool
         new[path] = dict(v=INDEX_VERSION, key=key, pos=0, data=s, agent='hermes', sid=sid, mtime=mtime)
     con.close()
 
@@ -343,7 +548,8 @@ def live_claude():
     for f in glob.glob(os.path.join(CLAUDE_HOME, 'sessions', '*.json')):
         d = load_json(f, {})
         if d.get('sessionId') and session_alive(d):
-            out[d['sessionId']] = dict(status=d.get('status') or 'open', cwd=d.get('cwd'))
+            out[d['sessionId']] = dict(status=d.get('status') or 'open', cwd=d.get('cwd'), name=d.get('name'),
+                                       started=d.get('startedAt'), since=d.get('statusUpdatedAt'))
     return out
 
 
@@ -522,6 +728,11 @@ def watched_files():
     return paths
 
 
+def newest(terms):
+    rows, _ = session_rows(terms, live_claude(), set(load_json(HIDDEN, [])))
+    return rows[0] if rows else None
+
+
 def session_rows(terms, live, hidden):
     rows, known = [], set()
     for ent in collect().values():
@@ -533,10 +744,12 @@ def session_rows(terms, live, hidden):
         if f'{agent}:{sid}' in hidden:
             continue
         status = None
+        age = time.time() - ent['mtime']
         if agent == 'claude' and sid in live:
             status = live[sid]['status']
-        elif d.get('open'):
-            status = 'open'
+        elif d.get('open') or (agent == 'codex' and age < CODEX_OPEN_SECONDS):
+            # Codex and Hermes leave no lock file: recent writes mean open; a turn in progress or a very recent write means busy.
+            status = 'busy' if age < BUSY_SECONDS or (agent == 'codex' and d.get('busy')) else 'open'
         # A cd you typed wins, then the directory a live session was launched from, then the project.
         launched = (live.get(sid) or {}).get('cwd') if agent == 'claude' else None
         where = d['shell'] or launched or d['root']
@@ -640,7 +853,7 @@ USAGE = """duckpond                       pick a session and resume it
 duckpond --window              same, in a new terminal window
 duckpond list [--json] [words]  print the session list (words filter it)
 duckpond doctor                check agents, stores, fzf and the cache
-duckpond pond [--once|--demo]  watch the agents that are running right now, as ducks
+duckpond pond [--interval S] [--once|--demo]  the btop-style heads-up display
 duckpond config [KEY [VALUE]]  show or change settings, e.g. duckpond config terminal "alacritty -e"
 duckpond install-launcher      add an "AI Sessions" app with an icon to this desktop
 duckpond uninstall-launcher    remove it again
